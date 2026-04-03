@@ -59,8 +59,6 @@ export default function KakeiboPage({ household }: Props) {
   const [m1, m2] = household.memberOrder;
   const name1 = household.memberNames[m1] ?? 'メンバー1';
   const name2 = household.memberNames[m2] ?? 'メンバー2';
-  const isManager = user?.uid === m1;
-
   const catStatus = useMemo(() => {
     const map = new Map<string, { count: number; total: number; m1Share: number; m2Share: number }>();
     for (const exp of expenses) {
@@ -82,6 +80,11 @@ export default function KakeiboPage({ household }: Props) {
 
   const isConfirmed = settlement?.confirmed ?? false;
   const isPaid = !!settlement?.paidAt;
+  const scheduledPayDate = settlement?.scheduledPayDate ?? '';
+
+  // 振込予定日の入力用 state
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [payDate, setPayDate] = useState(todayStr);
 
   const goMonth = (dir: -1 | 1) => {
     setSlideDir(dir);
@@ -94,9 +97,9 @@ export default function KakeiboPage({ household }: Props) {
   };
 
   const handlePayReport = async () => {
-    if (!user || !household) return;
+    if (!user || !household || !payDate) return;
     const ref = doc(db, 'households', household.id, 'settlements', yearMonth);
-    await updateDoc(ref, { paidAt: Timestamp.now(), paidBy: user.uid });
+    await updateDoc(ref, { paidAt: Timestamp.now(), paidBy: user.uid, scheduledPayDate: payDate });
   };
 
   return (
@@ -197,7 +200,7 @@ export default function KakeiboPage({ household }: Props) {
               const isDaily = DAILY_CATS.includes(cat.id);
               const entered = !!status || isFixed;
               const isSkipped = cat.id === 'cat_2' && status?.total === 0;
-              const canTap = isDaily || (isManager && !isFixed);
+              const canTap = isDaily || !isFixed;
 
               return (
                 <motion.button
@@ -261,12 +264,12 @@ export default function KakeiboPage({ household }: Props) {
               <div className="settlement-steps-inline">
                 <div className={`step-inline ${isConfirmed || isPaid ? 'done' : allCatsEntered ? 'current' : 'wait'}`}>
                   <div className="step-dot-inline">{isConfirmed || isPaid ? '✓' : '1'}</div>
-                  <span>{name1}確定</span>
+                  <span>確定</span>
                 </div>
                 <div className="step-line-inline" />
                 <div className={`step-inline ${isPaid ? 'done' : isConfirmed ? 'current' : 'wait'}`}>
                   <div className="step-dot-inline">{isPaid ? '✓' : '2'}</div>
-                  <span>{name2}振込</span>
+                  <span>振込</span>
                 </div>
                 <div className="step-line-inline" />
                 <div className={`step-inline ${isPaid ? 'done' : 'wait'}`}>
@@ -285,43 +288,61 @@ export default function KakeiboPage({ household }: Props) {
               {isPaid ? (
                 <div className="settlement-done-inline">
                   ✅ 精算完了
+                  {scheduledPayDate && (
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
+                      📅 振込日: {new Date(scheduledPayDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })}
+                    </div>
+                  )}
                   <button className="btn-undo" onClick={() => { if (window.confirm('振込報告を取り下げますか？')) unpaySettlement(); }}>振込を取り下げ</button>
                 </div>
               ) : isConfirmed ? (
-                !isManager ? (
-                  <div className="settlement-action-group">
-                    <motion.button
-                      className="btn btn-primary btn-sm"
-                      onClick={handlePayReport}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      💸 振り込みました
-                    </motion.button>
+                <div className="settlement-action-group">
+                  <div style={{ width: '100%', marginBottom: 8 }}>
+                    <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>
+                      📅 振込日を選択
+                    </label>
+                    <input
+                      type="date"
+                      value={payDate}
+                      min={todayStr}
+                      onChange={(e) => setPayDate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        fontSize: 15,
+                        background: 'rgba(255,255,255,0.08)',
+                        color: 'inherit',
+                      }}
+                    />
                   </div>
-                ) : (
-                  <div className="settlement-action-group">
-                    <div className="settlement-wait-inline">{name2}の振込待ち…</div>
-                    <button className="btn-undo" onClick={() => { if (window.confirm('確定を取り下げますか？')) unconfirmSettlement(); }}>確定を取り下げ</button>
-                  </div>
-                )
-              ) : allCatsEntered ? (
-                isManager ? (
                   <motion.button
                     className="btn btn-primary btn-sm"
-                    onClick={async () => {
-                      try {
-                        await confirmSettlement(allCatsEntered);
-                      } catch {
-                        alert('確定に失敗しました。もう一度お試しください。');
-                      }
-                    }}
+                    onClick={handlePayReport}
                     whileTap={{ scale: 0.97 }}
+                    disabled={!payDate}
                   >
-                    確定する
+                    💸 {payDate === todayStr
+                      ? '今日振り込みました'
+                      : `${new Date(payDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}に振り込みます`}
                   </motion.button>
-                ) : (
-                  <div className="settlement-wait-inline">{name1}の確定待ち</div>
-                )
+                  <button className="btn-undo" onClick={() => { if (window.confirm('確定を取り下げますか？')) unconfirmSettlement(); }}>確定を取り下げ</button>
+                </div>
+              ) : allCatsEntered ? (
+                <motion.button
+                  className="btn btn-primary btn-sm"
+                  onClick={async () => {
+                    try {
+                      await confirmSettlement(allCatsEntered);
+                    } catch {
+                      alert('確定に失敗しました。もう一度お試しください。');
+                    }
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  確定する
+                </motion.button>
               ) : (
                 <div className="settlement-wait-inline">全カテゴリ入力後に確定</div>
               )}

@@ -31,11 +31,15 @@ export default function SettlementPage({ household }: Props) {
   const name1 = household.memberNames[m1] ?? 'メンバー1';
   const name2 = household.memberNames[m2] ?? 'メンバー2';
 
-  const isManager = user?.uid === m1; // しんぺい = 管理者
   const isConfirmed = settlement?.confirmed ?? false;
   const isPaid = !!settlement?.paidAt;
+  const scheduledPayDate = settlement?.scheduledPayDate ?? '';
 
-  // しんぺいが確定ボタンを押す → confirmed: true
+  // 振込予定日の入力用 state（デフォルト: 今日）
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [payDate, setPayDate] = useState(todayStr);
+
+  // 確定ボタンを押す → confirmed: true
   const handleConfirm = async () => {
     if (!user || !household) return;
     const allCatsEntered = household.categories.every((cat) => {
@@ -45,13 +49,14 @@ export default function SettlementPage({ household }: Props) {
     await confirmSettlement(allCatsEntered);
   };
 
-  // ゆかが振込報告ボタンを押す
+  // 振込報告ボタンを押す（振込予定日を保存）
   const handlePayReport = async () => {
-    if (!user || !household) return;
+    if (!user || !household || !payDate) return;
     const ref = doc(db, 'households', household.id, 'settlements', yearMonth);
     await updateDoc(ref, {
       paidAt: Timestamp.now(),
       paidBy: user.uid,
+      scheduledPayDate: payDate,
     });
   };
 
@@ -96,12 +101,12 @@ export default function SettlementPage({ household }: Props) {
             <div className="settlement-steps">
               <div className={`step ${isConfirmed || isPaid ? 'done' : 'current'}`}>
                 <div className="step-dot">1</div>
-                <div className="step-label">{name1}確定</div>
+                <div className="step-label">確定</div>
               </div>
               <div className="step-line" />
               <div className={`step ${isPaid ? 'done' : isConfirmed ? 'current' : ''}`}>
                 <div className="step-dot">2</div>
-                <div className="step-label">{name2}振込</div>
+                <div className="step-label">振込</div>
               </div>
               <div className="step-line" />
               <div className={`step ${isPaid ? 'done' : ''}`}>
@@ -181,44 +186,59 @@ export default function SettlementPage({ household }: Props) {
             <div className="card" style={{ background: '#34C75915', textAlign: 'center', padding: 24, marginTop: 24 }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
               <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>精算完了</div>
+              {scheduledPayDate && (
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 8 }}>
+                  📅 振込日: {new Date(scheduledPayDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })}
+                </div>
+              )}
             </div>
           ) : isConfirmed ? (
             <div style={{ marginTop: 24 }}>
               <div className="card" style={{ background: '#FF950015', textAlign: 'center', padding: 16, marginBottom: 12 }}>
                 <span style={{ color: 'var(--color-warning)', fontWeight: 600 }}>
-                  {name1}が確定済み — {name2}の振込待ち
+                  確定済み — 振込待ち
                 </span>
               </div>
-              {!isManager && (
-                <motion.button
-                  className="btn btn-primary"
-                  onClick={handlePayReport}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  💸 振り込みました
-                </motion.button>
-              )}
-              {isManager && (
-                <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 14 }}>
-                  {name2}の振込報告を待っています…
-                </p>
-              )}
+              <div className="card" style={{ padding: 16, marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>
+                  📅 振込日を選択
+                </label>
+                <input
+                  type="date"
+                  value={payDate}
+                  min={todayStr}
+                  onChange={(e) => setPayDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid var(--color-border)',
+                    fontSize: 16,
+                    background: 'var(--color-bg)',
+                    color: 'var(--color-text)',
+                  }}
+                />
+              </div>
+              <motion.button
+                className="btn btn-primary"
+                onClick={handlePayReport}
+                whileTap={{ scale: 0.97 }}
+                disabled={!payDate}
+              >
+                💸 {payDate === todayStr
+                  ? '今日振り込みました'
+                  : `${new Date(payDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })}に振り込みます`}
+              </motion.button>
             </div>
           ) : (
             <div style={{ marginTop: 24 }}>
-              {isManager ? (
-                <motion.button
-                  className="btn btn-primary"
-                  onClick={handleConfirm}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  {formatYearMonth(yearMonth)}分を確定する
-                </motion.button>
-              ) : (
-                <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 14 }}>
-                  {name1}が確定するまでお待ちください
-                </p>
-              )}
+              <motion.button
+                className="btn btn-primary"
+                onClick={handleConfirm}
+                whileTap={{ scale: 0.97 }}
+              >
+                {formatYearMonth(yearMonth)}分を確定する
+              </motion.button>
             </div>
           )}
         </>

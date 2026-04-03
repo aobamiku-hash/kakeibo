@@ -47,6 +47,7 @@ export interface Settlement {
   confirmed: boolean;          // しんぺいが確定
   confirmedAt?: Timestamp;
   confirmedBy: string[];
+  scheduledPayDate?: string;   // 振込予定日 "YYYY-MM-DD"
   paidAt?: Timestamp;          // ゆかが振込完了した日時
   paidBy?: string;             // 振込したUID
 }

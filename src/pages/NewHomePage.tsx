@@ -41,9 +41,12 @@ export default function HomePage({ household }: Props) {
     );
     const unsub = onSnapshot(q, (snap) => {
       const pending: { yearMonth: string; settlement: Settlement }[] = [];
+      const nowStr = new Date().toISOString().slice(0, 10);
       snap.forEach((d) => {
         const s = d.data() as Settlement;
-        if (!s.paidAt && d.id !== yearMonth) {
+        // 未振込 OR 振込予定日が今日以降 → pending として表示
+        const isScheduledFuture = s.scheduledPayDate && s.scheduledPayDate >= nowStr;
+        if ((!s.paidAt || isScheduledFuture) && d.id !== yearMonth) {
           pending.push({ yearMonth: d.id, settlement: s });
         }
       });
@@ -111,9 +114,16 @@ export default function HomePage({ household }: Props) {
   const isConfirmed = settlement?.confirmed ?? false;
   const isPaid = !!settlement?.paidAt;
   const allEntered = enteredCount === totalCats;
+  const scheduledPayDate = settlement?.scheduledPayDate ?? '';
+
+  // 振込予定日が今日以降かどうか
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isPayDatePending = scheduledPayDate && scheduledPayDate >= todayStr;
 
   const statusText = isPaid
-    ? '✅ 精算完了'
+    ? isPayDatePending
+      ? `📅 ${new Date(scheduledPayDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}振込予定`
+      : '✅ 精算完了'
     : isConfirmed
       ? '💸 振込待ち'
       : allEntered
@@ -161,7 +171,7 @@ export default function HomePage({ household }: Props) {
             >
               <div className="digest-header">
                 <span className="digest-month">{formatYearMonth(yearMonth)}</span>
-                <span className={`digest-status-badge ${isPaid ? 'paid' : isConfirmed ? 'confirmed' : allEntered ? 'ready' : 'pending'}`}>
+                <span className={`digest-status-badge ${isPaid && !isPayDatePending ? 'paid' : isConfirmed || isPayDatePending ? 'confirmed' : allEntered ? 'ready' : 'pending'}`}>
                   {statusText}
                 </span>
               </div>
@@ -179,6 +189,11 @@ export default function HomePage({ household }: Props) {
                     <span className="digest-member-sub">{name1} {formatCurrency(summary.member1Should)} / {name2} {formatCurrency(summary.member2Should)}</span>
                   </div>
                   {/* アクションヒント（カード内） */}
+                  {isPaid && isPayDatePending && (
+                    <div className="digest-action confirmed">
+                      📅 {new Date(scheduledPayDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })}振込予定
+                    </div>
+                  )}
                   {!isPaid && isConfirmed && (
                     <div className="digest-action confirmed">
                       💸 {summary.settlement > 0 ? `${name2}→${name1}` : `${name1}→${name2}`} {formatCurrency(Math.abs(summary.settlement))} 振込
@@ -218,15 +233,21 @@ export default function HomePage({ household }: Props) {
           {/* ── 2. 振込待ち（コンパクト） ── */}
           {pendingPayments.length > 0 && (
             <motion.div className="pending-bar-section" variants={fadeUp}>
-              {pendingPayments.map((pp) => (
-                <button
-                  key={pp.yearMonth}
-                  className="pending-bar"
-                  onClick={() => navigate(`/kakeibo?ym=${pp.yearMonth}`)}
-                >
-                  💸 {formatYearMonth(pp.yearMonth)} 振込待ち ›
-                </button>
-              ))}
+              {pendingPayments.map((pp) => {
+                const ppPayDate = pp.settlement.scheduledPayDate;
+                const ppPending = ppPayDate && ppPayDate >= todayStr;
+                return (
+                  <button
+                    key={pp.yearMonth}
+                    className="pending-bar"
+                    onClick={() => navigate(`/kakeibo?ym=${pp.yearMonth}`)}
+                  >
+                    {ppPending
+                      ? `📅 ${formatYearMonth(pp.yearMonth)} ${new Date(ppPayDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}振込予定 ›`
+                      : `💸 ${formatYearMonth(pp.yearMonth)} 振込待ち ›`}
+                  </button>
+                );
+              })}
             </motion.div>
           )}
 
