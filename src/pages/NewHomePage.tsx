@@ -243,7 +243,7 @@ export default function HomePage({ household }: Props) {
                     onClick={() => navigate(`/kakeibo?ym=${pp.yearMonth}`)}
                   >
                     {ppPending
-                      ? `📅 ${formatYearMonth(pp.yearMonth)} ${new Date(ppPayDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}振込予定 ›`
+                      ? `📅 ${formatYearMonth(pp.yearMonth)}｜${new Date(ppPayDate + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })} 振込予定 ›`
                       : `💸 ${formatYearMonth(pp.yearMonth)} 振込待ち ›`}
                   </button>
                 );
