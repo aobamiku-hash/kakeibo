@@ -1,0 +1,1409 @@
+{
+  "expenses": [
+    {
+      "yearMonth": "2026-01",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-01",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 20901,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-01",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 59079,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-01",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 450515,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-02",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-02",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 27075,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-02",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5591,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-02",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 108388,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-02",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 13550,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-03",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-03",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 26882,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-03",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 71081,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-03",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 12709,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-04",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-05",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-06",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-07",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-08",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-09",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-10",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-11",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2026-12",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2027-01",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2027-02",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2027-03",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2027-04",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-09",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-09",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 26770,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-09",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 98661,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-09",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-10",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-10",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 20496,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-10",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5222,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-10",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 75026,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-10",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-10",
+      "categoryId": "cat_6",
+      "categoryName": "その他",
+      "amount": 40790,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-10",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 1130,
+      "paidBy": "yuka",
+      "split": [
+        100,
+        0
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-11",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-11",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 14052,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-11",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 61012,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-11",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-11",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 1300,
+      "paidBy": "yuka",
+      "split": [
+        100,
+        0
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-12",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-12",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 13799,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-12",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5038,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-12",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 76387,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-12",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2024-12",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 21085,
+      "paidBy": "yuka",
+      "split": [
+        100,
+        0
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-01",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-01",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 16307,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-01",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 118231,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-01",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-01",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 1700,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-02",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-02",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 27690,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-02",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5591,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-02",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 88698,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-02",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-02",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 5298,
+      "paidBy": "yuka",
+      "split": [
+        100,
+        0
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-03",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-03",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 26099,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-03",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 65604,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-03",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-03",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 12356,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-04",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-04",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 23953,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-04",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 80582,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-04",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-04",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 5000,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-05",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-05",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 19994,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-05",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 6374,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-05",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 64246,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-05",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-05",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 31165,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-06",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-06",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 15205,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-06",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5776,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-06",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 46262,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-06",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-06",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 7185,
+      "paidBy": "yuka",
+      "split": [
+        100,
+        0
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-07",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-07",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 15528,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-07",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 47185,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-07",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-07",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 138834,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-08",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-08",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 19151,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-08",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5222,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-08",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 94023,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-08",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-08",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 15172,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-09",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-09",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 22363,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-09",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 84155,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-09",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-09",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 51310,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-10",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-10",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 25446,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-10",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5591,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-10",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 81694,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-10",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-10",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 97820,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-11",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-11",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 16507,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-11",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 105359,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-11",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-11",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 10470,
+      "paidBy": "yuka",
+      "split": [
+        100,
+        0
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-12",
+      "categoryId": "cat_0",
+      "categoryName": "家賃",
+      "amount": 46430,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-12",
+      "categoryId": "cat_1",
+      "categoryName": "電気ガス",
+      "amount": 18572,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-12",
+      "categoryId": "cat_2",
+      "categoryName": "水道",
+      "amount": 5591,
+      "paidBy": "shinpei",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-12",
+      "categoryId": "cat_4",
+      "categoryName": "クレジット",
+      "amount": 60163,
+      "paidBy": "shinpei",
+      "split": [
+        60,
+        40
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-12",
+      "categoryId": "cat_3",
+      "categoryName": "ネット",
+      "amount": 5130,
+      "paidBy": "yuka",
+      "split": [
+        50,
+        50
+      ],
+      "note": ""
+    },
+    {
+      "yearMonth": "2025-12",
+      "categoryId": "cat_5",
+      "categoryName": "立て替え",
+      "amount": 93286,
+      "paidBy": "shinpei",
+      "split": [
+        0,
+        100
+      ],
+      "note": ""
+    }
+  ],
+  "summary": {
+    "totalExpenses": 114,
+    "months": [
+      "2024-09",
+      "2024-10",
+      "2024-11",
+      "2024-12",
+      "2025-01",
+      "2025-02",
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06",
+      "2025-07",
+      "2025-08",
+      "2025-09",
+      "2025-10",
+      "2025-11",
+      "2025-12",
+      "2026-01",
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05",
+      "2026-06",
+      "2026-07",
+      "2026-08",
+      "2026-09",
+      "2026-10",
+      "2026-11",
+      "2026-12",
+      "2027-01",
+      "2027-02",
+      "2027-03",
+      "2027-04"
+    ]
+  }
+}

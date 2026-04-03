@@ -1,0 +1,25 @@
+# 依存関係
+node_modules/
+
+# ビルド成果物
+dist/
+
+# 環境変数（APIキーなど機密情報）
+.env
+.env.local
+.env.*.local
+
+# Firebase エミュレータ
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# エディタ設定
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo

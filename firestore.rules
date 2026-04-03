@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── ユーザーと世帯の紐付け ──
+    match /userHouseholds/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── 世帯 ──
+    match /households/{householdId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow update: if request.auth != null
+        && (request.auth.uid in resource.data.members
+            || resource.data.memberCount == 1);
+
+      // ── 支出 ──
+      match /expenses/{expenseId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+      }
+
+      // ── 精算 ──
+      match /settlements/{yearMonth} {
+        allow read, write: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+      }
+
+      // ── 伝言板 ──
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+      }
+
+      // ── 旅行カウントダウン ──
+      match /trips/{tripId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+      }
+    }
+  }
+}
