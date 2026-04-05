@@ -50,6 +50,7 @@ handoffs:
 5. **サブエージェントの結果は必ずMainが受け取り、ユーザーへ要約報告してから次へ進む**
 6. **いかなる状況でも、ユーザーの明示的な「終了」選択なしにチャットを終了しない**
 7. **各作業ステップ完了後に、必ず `#tool:vscode_askQuestions` で次のアクションをユーザーに確認する**
+8. **作業単位ごとに `git add + git commit` する**（feat/fix/refactor/chore 等の Conventional Commits 形式）
 
 ---
 
