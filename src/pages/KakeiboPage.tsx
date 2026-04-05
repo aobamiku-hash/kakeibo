@@ -237,7 +237,7 @@ export default function KakeiboPage({ household }: Props) {
                     <>
                       <div className="cat-tile-amount">
                         {formatCurrency(status.total)}
-                        {isDaily && status.count > 1 && (
+                        {(isDaily || cat.id === 'cat_4') && status.count > 1 && (
                           <span className="cat-tile-count"> ({status.count}件)</span>
                         )}
                       </div>

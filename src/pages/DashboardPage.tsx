@@ -13,6 +13,7 @@ import {
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Household } from '../types';
+import { CREDIT_SUBCATEGORIES } from '../types';
 
 interface Props {
   household: Household;
@@ -53,6 +54,20 @@ export default function DashboardPage({ household }: Props) {
       });
     }
     return map;
+  }, [expenses]);
+
+  // クレカサブカテゴリ集計
+  const creditSubcats = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const exp of expenses) {
+      if (exp.categoryId === 'cat_4' && exp.subcategory) {
+        map.set(exp.subcategory, (map.get(exp.subcategory) ?? 0) + exp.amount);
+      }
+    }
+    if (map.size === 0) return null;
+    return [...map.entries()]
+      .map(([key, total]) => ({ key, ...(CREDIT_SUBCATEGORIES[key] ?? { name: key, emoji: '📝' }), total }))
+      .sort((a, b) => b.total - a.total);
   }, [expenses]);
 
   const allCatsEntered = household.categories.every((cat) => {
@@ -215,7 +230,7 @@ export default function DashboardPage({ household }: Props) {
                     <>
                       <div className="cat-tile-amount">
                         {formatCurrency(status.total)}
-                        {isDaily && status.count > 1 && (
+                        {(isDaily || cat.id === 'cat_4') && status.count > 1 && (
                           <span className="cat-tile-count"> ({status.count}件)</span>
                         )}
                       </div>
@@ -235,6 +250,32 @@ export default function DashboardPage({ household }: Props) {
               );
             })}
           </div>
+
+          {/* ── クレカ内訳（データがある月のみ） ── */}
+          {creditSubcats && (
+            <div className="card" style={{ padding: '12px 16px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <span style={{ fontSize: 16 }}>💳</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>クレジット内訳</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {creditSubcats.map((item) => (
+                  <div
+                    key={item.key}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      background: 'rgba(255,255,255,0.04)', borderRadius: 8,
+                      padding: '4px 10px', fontSize: 12,
+                    }}
+                  >
+                    <span>{item.emoji}</span>
+                    <span style={{ opacity: 0.7 }}>{item.name}</span>
+                    <span style={{ fontWeight: 600 }}>{formatCurrency(item.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── 精算フロー（ホーム下部統合） ── */}
           {summary && (

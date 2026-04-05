@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useExpenses } from '../hooks/useExpenses';
 import { formatCurrency, currentYearMonth, formatYearMonth } from '../utils/calculation';
 import type { Household, Expense } from '../types';
+import { CREDIT_SUBCATEGORIES } from '../types';
 
 interface Props {
   household: Household;
@@ -93,6 +94,8 @@ export default function EntryPage({ household }: Props) {
   const isMulti = cat.id === 'cat_5' || cat.id === 'cat_6'; // 立て替え / 割り勘
   const isWarikan = cat.id === 'cat_6'; // 割り勘
   const isBimonthly = cat.id === 'cat_2'; // 水道は隔月
+  const isCreditCard = cat.id === 'cat_4';
+  const hasCreditDetails = isCreditCard && catExpenses.some(e => e.subcategory);
 
   return (
     <motion.div
@@ -112,7 +115,14 @@ export default function EntryPage({ household }: Props) {
         {cat.name}
       </h1>
 
-      {isMulti ? (
+      {hasCreditDetails ? (
+        <CreditCardView
+          household={household}
+          expenses={catExpenses}
+          m1={m1}
+          m2={m2}
+        />
+      ) : isMulti ? (
         <MultiEntryView
           household={household}
           cat={cat}
@@ -143,6 +153,147 @@ export default function EntryPage({ household }: Props) {
         />
       )}
     </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════
+   クレカ内訳ビュー（cat_4 + subcategory があるとき）
+   ═══════════════════════════════════════ */
+function CreditCardView({
+  household, expenses, m1, m2,
+}: {
+  household: Household;
+  expenses: Expense[];
+  m1: string;
+  m2: string;
+}) {
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const name1 = household.memberNames[m1] ?? 'メンバー1';
+  const name2 = household.memberNames[m2] ?? 'メンバー2';
+
+  // サブカテゴリ別に集計
+  const subcatGroups = useMemo(() => {
+    const map = new Map<string, { items: Expense[]; total: number }>();
+    for (const exp of expenses) {
+      const key = exp.subcategory || 'unknown';
+      const cur = map.get(key) ?? { items: [], total: 0 };
+      cur.items.push(exp);
+      cur.total += exp.amount;
+      map.set(key, cur);
+    }
+    // 金額降順ソート
+    return [...map.entries()].sort((a, b) => b[1].total - a[1].total);
+  }, [expenses]);
+
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const m1Total = expenses.reduce((s, e) => s + e.amount * (e.split[0] / 100), 0);
+  const m2Total = expenses.reduce((s, e) => s + e.amount * (e.split[1] / 100), 0);
+
+  return (
+    <>
+      {/* ── 合計サマリー ── */}
+      <div className="card" style={{ marginBottom: 16, padding: '16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ fontSize: 14, opacity: 0.7 }}>合計</span>
+          <span style={{ fontSize: 24, fontWeight: 700 }}>{formatCurrency(total)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 13, opacity: 0.7 }}>
+          <span>{name1} {formatCurrency(Math.round(m1Total))}</span>
+          <span>{name2} {formatCurrency(Math.round(m2Total))}</span>
+        </div>
+        <div style={{ fontSize: 12, opacity: 0.5, marginTop: 4 }}>
+          {expenses.length}件の明細
+        </div>
+      </div>
+
+      {/* ── サブカテゴリ別内訳 ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {subcatGroups.map(([key, group]) => {
+          const subInfo = CREDIT_SUBCATEGORIES[key] ?? { name: key, emoji: '📝' };
+          const isExpanded = expandedCat === key;
+          const pct = total > 0 ? Math.round((group.total / total) * 100) : 0;
+
+          return (
+            <div key={key} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              {/* ヘッダー（タップで展開） */}
+              <button
+                onClick={() => setExpandedCat(isExpanded ? null : key)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', padding: '14px 16px', border: 'none',
+                  background: 'transparent', color: 'inherit', cursor: 'pointer',
+                  textAlign: 'left', fontSize: 14,
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{subInfo.emoji}</span>
+                <span style={{ flex: 1, fontWeight: 600 }}>{subInfo.name}</span>
+                <span style={{ opacity: 0.5, fontSize: 12 }}>{group.items.length}件</span>
+                <span style={{ fontWeight: 600, minWidth: 80, textAlign: 'right' }}>
+                  {formatCurrency(group.total)}
+                </span>
+                <span style={{ opacity: 0.4, fontSize: 12, minWidth: 36, textAlign: 'right' }}>
+                  {pct}%
+                </span>
+                <span style={{ fontSize: 12, opacity: 0.4, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : '' }}>
+                  ▼
+                </span>
+              </button>
+
+              {/* ── 割合バー ── */}
+              <div style={{ height: 3, background: 'rgba(255,255,255,0.05)', margin: '0 16px' }}>
+                <div style={{
+                  height: '100%', width: `${pct}%`,
+                  background: 'rgba(46,160,67,0.6)', borderRadius: 2,
+                  transition: 'width 0.3s',
+                }} />
+              </div>
+
+              {/* ── 展開リスト ── */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0' }}>
+                      {group.items
+                        .sort((a, b) => b.amount - a.amount)
+                        .map((exp) => {
+                          const payer = household.memberNames[exp.paidBy] ?? '?';
+                          return (
+                            <div
+                              key={exp.id}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                padding: '8px 16px', fontSize: 13,
+                              }}
+                            >
+                              <span style={{ flex: 1, opacity: 0.8 }}>{exp.note || '—'}</span>
+                              <span style={{
+                                fontSize: 11, opacity: 0.5,
+                                background: 'rgba(255,255,255,0.06)',
+                                padding: '2px 6px', borderRadius: 4,
+                              }}>
+                                {payer}
+                              </span>
+                              <span style={{ fontWeight: 500, minWidth: 70, textAlign: 'right' }}>
+                                {formatCurrency(exp.amount)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

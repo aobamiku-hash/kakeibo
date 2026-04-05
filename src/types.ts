@@ -28,7 +28,20 @@ export interface Expense {
   note: string;
   createdAt: Timestamp;
   createdBy: string;       // uid
+  subcategory?: string;        // クレカ内訳: "grocery" | "dining" | ...
+  subcategoryName?: string;    // クレカ内訳名: "食費" | "外食" | ...
 }
+
+/* ── クレカサブカテゴリ定義 ── */
+export const CREDIT_SUBCATEGORIES: Record<string, { name: string; emoji: string }> = {
+  grocery:   { name: '食費',     emoji: '🛒' },
+  dining:    { name: '外食',     emoji: '🍽️' },
+  daily:     { name: '日用品',   emoji: '🏪' },
+  shopping:  { name: '買い物',   emoji: '🛍️' },
+  transport: { name: '交通・車', emoji: '🚗' },
+  leisure:   { name: 'レジャー', emoji: '🎯' },
+  other:     { name: 'その他',   emoji: '❓' },
+};
 
 /* ── 世帯 ── */
 export interface Household {
