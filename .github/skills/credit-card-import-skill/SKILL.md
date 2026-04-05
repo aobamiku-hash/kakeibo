@@ -72,6 +72,13 @@ node scripts/import_credit_cards.cjs
 node scripts/check_credit_data.cjs
 ```
 
+### Step 6: バックアップ
+インポート完了後、必ずFirestoreのバックアップを取得する。
+```powershell
+node scripts/backup_firestore.cjs
+```
+出力先: `c:\py\kakeibo-app\backups\backup_YYYYMMDD_HHMMSS.json`
+
 ## CSVフォーマット対応表
 
 | パターン | ヘッダー | エンコーディング | 備考 |
