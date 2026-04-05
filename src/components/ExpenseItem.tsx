@@ -20,6 +20,7 @@ export default function ExpenseItem({ expense, household, onTap }: Props) {
   return (
     <motion.div
       className="expense-item"
+      data-member={expense.paidBy}
       onClick={onTap}
       whileTap={{ scale: 0.98 }}
       layout

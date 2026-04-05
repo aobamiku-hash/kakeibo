@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { formatYearMonth, formatCurrency } from '../utils/calculation';
@@ -82,19 +82,34 @@ export default function HistoryPage({ household }: Props) {
   const [hiddenCats, setHiddenCats] = useState<Set<string>>(new Set());
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  /* ── Data fetch ── */
+  /* ── Data fetch (onSnapshot — キャッシュから即座に返る) ── */
   useEffect(() => {
     if (!household) return;
-    (async () => {
-      try {
-        const expSnap = await getDocs(
-          query(collection(db, 'households', household.id, 'expenses'), orderBy('yearMonth', 'desc')),
-        );
-        const monthMap = new Map<string, {
-          count: number; total: number;
-          byCat: Map<string, number>; byCreditSubcat: Map<string, number>;
-        }>();
-        for (const d of expSnap.docs) {
+
+    const settMap = new Map<string, Settlement>();
+    let gotSettlements = false;
+
+    const buildRecords = (
+      monthMap: Map<string, { count: number; total: number; byCat: Map<string, number>; byCreditSubcat: Map<string, number> }>,
+    ) => {
+      const list: MonthRecord[] = [];
+      for (const [ym, v] of monthMap) {
+        list.push({
+          yearMonth: ym, expenseCount: v.count, total: Math.round(v.total),
+          settlement: settMap.get(ym) ?? null, byCat: v.byCat, byCreditSubcat: v.byCreditSubcat,
+        });
+      }
+      list.sort((a, b) => (b.yearMonth > a.yearMonth ? 1 : -1));
+      return list;
+    };
+
+    let latestMonthMap: Map<string, { count: number; total: number; byCat: Map<string, number>; byCreditSubcat: Map<string, number> }> = new Map();
+
+    const unsubExp = onSnapshot(
+      query(collection(db, 'households', household.id, 'expenses'), orderBy('yearMonth', 'desc')),
+      (snap) => {
+        const monthMap = new Map<string, { count: number; total: number; byCat: Map<string, number>; byCreditSubcat: Map<string, number> }>();
+        for (const d of snap.docs) {
           const data = d.data() as Expense;
           const ym = data.yearMonth;
           const cur = monthMap.get(ym) ?? { count: 0, total: 0, byCat: new Map(), byCreditSubcat: new Map() };
@@ -106,25 +121,37 @@ export default function HistoryPage({ household }: Props) {
           }
           monthMap.set(ym, cur);
         }
-        const setSnap = await getDocs(collection(db, 'households', household.id, 'settlements'));
-        const settMap = new Map<string, Settlement>();
-        for (const d of setSnap.docs) settMap.set(d.id, d.data() as Settlement);
-        const list: MonthRecord[] = [];
-        for (const [ym, v] of monthMap) {
-          list.push({
-            yearMonth: ym, expenseCount: v.count, total: Math.round(v.total),
-            settlement: settMap.get(ym) ?? null, byCat: v.byCat, byCreditSubcat: v.byCreditSubcat,
-          });
+        latestMonthMap = monthMap;
+        if (gotSettlements) {
+          setRecords(buildRecords(monthMap));
         }
-        list.sort((a, b) => (b.yearMonth > a.yearMonth ? 1 : -1));
-        setRecords(list);
-      } catch (err) {
-        console.error('HistoryPage fetch error:', err);
-        setFetchError(err instanceof Error ? err.message : 'データ取得に失敗しました');
-      } finally {
         setLoading(false);
-      }
-    })();
+      },
+      (err) => {
+        console.error('HistoryPage expenses snapshot error:', err);
+        setFetchError(err instanceof Error ? err.message : 'データ取得に失敗しました');
+        setLoading(false);
+      },
+    );
+
+    const unsubSet = onSnapshot(
+      collection(db, 'households', household.id, 'settlements'),
+      (snap) => {
+        settMap.clear();
+        for (const d of snap.docs) settMap.set(d.id, d.data() as Settlement);
+        gotSettlements = true;
+        if (latestMonthMap.size > 0) {
+          setRecords(buildRecords(latestMonthMap));
+        }
+      },
+      (err) => {
+        console.error('HistoryPage settlements snapshot error:', err);
+        // settlements取得失敗でも expenses だけで表示続行
+        gotSettlements = true;
+      },
+    );
+
+    return () => { unsubExp(); unsubSet(); };
   }, [household]);
 
   const confirmed = useMemo(() => records.filter(r => r.settlement?.confirmed), [records]);

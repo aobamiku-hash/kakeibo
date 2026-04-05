@@ -15,11 +15,11 @@ import ImportPage from './pages/ImportPage';
 import { useState, useEffect } from 'react';
 
 const pageVariants = {
-  initial: { opacity: 0, y: 18 },
-  in: { opacity: 1, y: 0 },
-  out: { opacity: 0, y: -12 },
+  initial: { opacity: 0, y: 24, scale: 0.98 },
+  in: { opacity: 1, y: 0, scale: 1 },
+  out: { opacity: 0, y: -16, scale: 0.98 },
 };
-const pageTransition = { duration: 0.25, ease: 'easeInOut' };
+const pageTransition = { duration: 0.22, ease: [0.4, 0, 0.2, 1] };
 
 function LoadingScreen({ message }: { message?: string }) {
   const [showRefresh, setShowRefresh] = useState(false);

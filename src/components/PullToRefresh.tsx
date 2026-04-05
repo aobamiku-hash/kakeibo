@@ -1,13 +1,12 @@
 import { useRef, useState, useCallback, type ReactNode, type TouchEvent } from 'react';
 
 interface Props {
-  onRefresh: () => void;
   children: ReactNode;
 }
 
 const THRESHOLD = 80;
 
-export default function PullToRefresh({ onRefresh, children }: Props) {
+export default function PullToRefresh({ children }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const [pullDistance, setPullDistance] = useState(0);
@@ -36,13 +35,12 @@ export default function PullToRefresh({ onRefresh, children }: Props) {
     if (pullDistance >= THRESHOLD && !refreshing) {
       setRefreshing(true);
       setPullDistance(THRESHOLD);
-      onRefresh();
       // リロード実行
       setTimeout(() => window.location.reload(), 300);
     } else {
       setPullDistance(0);
     }
-  }, [pullDistance, refreshing, onRefresh]);
+  }, [pullDistance, refreshing]);
 
   const progress = Math.min(pullDistance / THRESHOLD, 1);
 

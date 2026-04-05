@@ -47,6 +47,7 @@ C:/Users/aobam/AppData/Local/Programs/Python/Python313/python.exe C:\py\kakeibo\
 - 店舗名からカテゴリを自動分類
 - 重複除去（同一日付・店舗名・金額）
 - 出力: `C:\py\kakeibo\credit_card_items.json`
+- **「その他」分類の店舗があればユーザーにカテゴリ確認し、`parse_credit_cards.py` の CATEGORY_RULES に追加してから再パース**
 
 ### Step 3: ドライラン確認
 ```powershell
@@ -62,6 +63,9 @@ node scripts/import_credit_cards.cjs --delete-aggregates
 # 集計行を残す場合
 node scripts/import_credit_cards.cjs
 ```
+
+> **Note**: インポートスクリプトは自動的に `cat_credit_*` → `cat_4` + subcategory に変換して書き込みます。
+> マイグレーションスクリプト (`migrate_credit_categories.cjs`) の実行は不要です。
 
 ### Step 5: 確認
 ```powershell
@@ -100,18 +104,21 @@ node scripts/check_credit_data.cjs
 
 ## paidBy マッピング
 
-| 利用者列の値 | paidBy |
-|---|---|
-| V4010, 空, なし | shinpei |
-| 古舘ユカ, ユカ, yuka | yuka |
+| 利用者列の値 | パーサー出力 | Firestore UID |
+|---|---|---|
+| V4010, 空, なし | shinpei | A6H88EKmW3X4S1jmpNNNsFWDGh52 |
+| 古舘ユカ, ユカ, yuka | yuka | gc994X7gigSHjx1DOCsEZqyyIw03 |
+
+> **Note**: インポートスクリプトが自動的にパーサーの名前出力をUID に変換します。
 
 ## Firestore データ構造
 
 ```json
 {
   "yearMonth": "2026-01",      // 請求月（ファイル名ベース）
-  "categoryId": "cat_credit_grocery",
-  "categoryName": "食費（クレカ）",
+  "categoryId": "cat_4",       // クレジットカード統合カテゴリ
+  "subcategory": "grocery",    // サブカテゴリキー
+  "subcategoryName": "食費",   // サブカテゴリ表示名
   "amount": 3693,
   "paidBy": "shinpei",
   "split": [60, 40],

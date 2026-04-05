@@ -1,67 +1,14 @@
-import { useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useExpenses } from '../hooks/useExpenses';
 import { formatCurrency, currentYearMonth, formatYearMonth } from '../utils/calculation';
-import type { Household, Expense } from '../types';
+import type { Household, Expense, Settlement } from '../types';
 import { CREDIT_SUBCATEGORIES } from '../types';
 
 interface Props {
   household: Household;
-}
-
-const SWIPE_DELETE_THRESHOLD = -80;
-
-function SwipeDeleteItem({ children, onDelete }: { children: React.ReactNode; onDelete: () => Promise<void> }) {
-  const [showBtn, setShowBtn] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x < SWIPE_DELETE_THRESHOLD) {
-      setShowBtn(true);
-    } else {
-      setShowBtn(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm('この項目を削除しますか？')) {
-      setShowBtn(false);
-      return;
-    }
-    try {
-      setDeleting(true);
-      await onDelete();
-    } catch (err) {
-      console.error('削除エラー:', err);
-      alert('削除に失敗しました。もう一度お試しください。');
-      setDeleting(false);
-      setShowBtn(false);
-    }
-  };
-
-  return (
-    <div className="swipe-delete-wrapper">
-      <div className={`swipe-delete-bg ${showBtn ? 'visible' : ''}`}>
-        <button className="swipe-delete-btn" onClick={handleDelete} disabled={deleting}>
-          {deleting ? '…' : '削除'}
-        </button>
-      </div>
-      <motion.div
-        className="swipe-delete-content"
-        drag="x"
-        dragConstraints={{ left: -100, right: 0 }}
-        dragElastic={0.1}
-        onDragEnd={handleDragEnd}
-        animate={{ x: showBtn ? -80 : 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        style={{ touchAction: 'pan-y' }}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
 }
 
 export default function EntryPage({ household }: Props) {
@@ -70,7 +17,7 @@ export default function EntryPage({ household }: Props) {
   const yearMonth = searchParams.get('ym') ?? currentYearMonth();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { expenses, addExpense, updateExpense, deleteExpense } = useExpenses(household, yearMonth);
+  const { expenses, settlement, addExpense, updateExpense, deleteExpense } = useExpenses(household, yearMonth);
 
   const [m1, m2] = household.memberOrder;
   const cat = catId ? household.categories.find((c) => c.id === catId) : undefined;
@@ -128,7 +75,9 @@ export default function EntryPage({ household }: Props) {
           cat={cat}
           yearMonth={yearMonth}
           expenses={catExpenses}
+          settlement={settlement}
           addExpense={addExpense}
+          updateExpense={updateExpense}
           deleteExpense={deleteExpense}
           isWarikan={isWarikan}
           m1={m1}
@@ -260,7 +209,7 @@ function CreditCardView({
                   >
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0' }}>
                       {group.items
-                        .sort((a, b) => b.amount - a.amount)
+                        .toSorted((a, b) => b.amount - a.amount)
                         .map((exp) => {
                           const payer = household.memberNames[exp.paidBy] ?? '?';
                           return (
@@ -330,27 +279,39 @@ function SingleEntryView({
   const handleSave = async () => {
     if (amount === 0 || !user) return;
     setSaving(true);
-    const data = {
-      yearMonth,
-      categoryId: cat.id,
-      amount,
-      paidBy: payer,
-      split: cat.defaultSplit as [number, number],
-      note: '',
-    };
-    if (existing) {
-      await updateExpense(existing.id, { amount });
-    } else {
-      await addExpense(data);
+    try {
+      const data = {
+        yearMonth,
+        categoryId: cat.id,
+        amount,
+        paidBy: payer,
+        split: cat.defaultSplit as [number, number],
+        note: '',
+      };
+      if (existing) {
+        await updateExpense(existing.id, { amount });
+      } else {
+        await addExpense(data);
+      }
+      setDone(true);
+      setTimeout(() => navigate('/'), 600);
+    } catch (err) {
+      console.error('保存エラー:', err);
+      alert('保存に失敗しました');
+    } finally {
+      setSaving(false);
     }
-    setDone(true);
-    setTimeout(() => navigate('/'), 600);
   };
 
   const handleDelete = async () => {
-    if (existing) {
+    if (!existing) return;
+    if (!window.confirm('この項目を削除しますか？')) return;
+    try {
       await deleteExpense(existing.id);
       navigate('/');
+    } catch (err) {
+      console.error('削除エラー:', err);
+      alert('削除に失敗しました');
     }
   };
 
@@ -385,7 +346,7 @@ function SingleEntryView({
       </div>
       <div className="entry-info-row">
         <span>支払者</span>
-        <span className="entry-info-value">{household.memberNames[m1]}</span>
+        <span className="entry-info-value">{household.memberNames[payer]}</span>
       </div>
 
       <motion.button
@@ -415,16 +376,23 @@ function SingleEntryView({
           onClick={async () => {
             if (!user) return;
             setSaving(true);
-            await addExpense({
-              yearMonth,
-              categoryId: cat.id,
-              amount: 0,
-              paidBy: m1,
-              split: cat.defaultSplit as [number, number],
-              note: '今月はスキップ',
-            });
-            setDone(true);
-            setTimeout(() => navigate('/'), 600);
+            try {
+              await addExpense({
+                yearMonth,
+                categoryId: cat.id,
+                amount: 0,
+                paidBy: m1,
+                split: cat.defaultSplit as [number, number],
+                note: '今月はスキップ',
+              });
+              setDone(true);
+              setTimeout(() => navigate('/'), 600);
+            } catch (err) {
+              console.error('スキップエラー:', err);
+              alert('スキップに失敗しました');
+            } finally {
+              setSaving(false);
+            }
           }}
           disabled={saving}
           whileTap={{ scale: 0.97 }}
@@ -440,13 +408,15 @@ function SingleEntryView({
    複数入力ビュー（立て替え / 割り勘）
    ═══════════════════════════════════════ */
 function MultiEntryView({
-  household, cat, yearMonth, expenses, addExpense, deleteExpense, isWarikan, m1, m2, user,
+  household, cat, yearMonth, expenses, settlement, addExpense, updateExpense, deleteExpense, isWarikan, m1, m2, user,
 }: {
   household: Household;
   cat: Household['categories'][number];
   yearMonth: string;
   expenses: Expense[];
+  settlement: Settlement | null;
   addExpense: (d: Omit<Expense, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>;
+  updateExpense: (id: string, d: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   isWarikan: boolean;
   m1: string;
@@ -460,10 +430,24 @@ function MultiEntryView({
   const [splitA, setSplitA] = useState(isWarikan ? 60 : 0);
   const [splitB, setSplitB] = useState(isWarikan ? 40 : 100);
   const [saving, setSaving] = useState(false);
+  const [editingExp, setEditingExp] = useState<Expense | null>(null);
+  const [editAmountStr, setEditAmountStr] = useState('');
+  const [editNote, setEditNote] = useState('');
+  const [editPaidBy, setEditPaidBy] = useState(m1);
 
   const amount = parseInt(amountStr, 10) || 0;
   const name1 = household.memberNames[m1] ?? 'メンバー1';
   const name2 = household.memberNames[m2] ?? 'メンバー2';
+
+  const isLocked = !!(settlement?.confirmed || settlement?.paidAt);
+
+  // iOS: ボトムシート表示中はbodyスクロールをロック
+  useEffect(() => {
+    if (editingExp) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [editingExp]);
 
   const handleSlider = useCallback((val: number) => {
     setSplitA(val);
@@ -473,112 +457,104 @@ function MultiEntryView({
   const handleAdd = async () => {
     if (amount === 0 || !user) return;
     setSaving(true);
+    try {
+      let finalSplit: [number, number];
+      let finalPaidBy: string;
 
-    let finalSplit: [number, number];
-    let finalPaidBy: string;
+      if (isWarikan) {
+        finalSplit = [splitA, splitB];
+        finalPaidBy = paidBy;
+      } else {
+        finalSplit = paidBy === m1 ? [0, 100] : [100, 0];
+        finalPaidBy = paidBy;
+      }
 
-    if (isWarikan) {
-      finalSplit = [splitA, splitB];
-      finalPaidBy = paidBy;
-    } else {
-      // 立て替え: 全額相手負担
-      finalSplit = paidBy === m1 ? [0, 100] : [100, 0];
-      finalPaidBy = paidBy;
+      await addExpense({
+        yearMonth,
+        categoryId: cat.id,
+        amount,
+        paidBy: finalPaidBy,
+        split: finalSplit,
+        note,
+      });
+
+      setAmountStr('');
+      setNote('');
+      setShowForm(false);
+    } catch (err) {
+      console.error('追加エラー:', err);
+      alert('追加に失敗しました');
+    } finally {
+      setSaving(false);
     }
+  };
 
-    await addExpense({
-      yearMonth,
-      categoryId: cat.id,
-      amount,
-      paidBy: finalPaidBy,
-      split: finalSplit,
-      note,
-    });
+  const openEdit = (exp: Expense) => {
+    if (isLocked) return;
+    setEditingExp(exp);
+    setEditAmountStr(String(exp.amount));
+    setEditNote(exp.note || '');
+    setEditPaidBy(exp.paidBy);
+  };
 
-    setSaving(false);
-    setAmountStr('');
-    setNote('');
-    setShowForm(false);
+  const handleEditSave = async () => {
+    if (!editingExp) return;
+    const newAmount = parseInt(editAmountStr, 10) || 0;
+    if (newAmount === 0) return;
+    if (!window.confirm(`¥${newAmount.toLocaleString()} に更新しますか？`)) return;
+    setSaving(true);
+    try {
+      const updates: Partial<Expense> = {
+        amount: newAmount,
+        note: editNote,
+        paidBy: editPaidBy,
+      };
+      if (!isWarikan) {
+        updates.split = editPaidBy === m1 ? [0, 100] : [100, 0];
+      }
+
+      await updateExpense(editingExp.id, updates);
+      setEditingExp(null);
+    } catch (err) {
+      console.error('編集エラー:', err);
+      alert('更新に失敗しました');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditDelete = async () => {
+    if (!editingExp) return;
+    if (!window.confirm('この立替を削除しますか？この操作は取り消せません。')) return;
+    setSaving(true);
+    try {
+      await deleteExpense(editingExp.id);
+      setEditingExp(null);
+    } catch (err) {
+      console.error('削除エラー:', err);
+      alert('削除に失敗しました');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
-
-  // 立て替えサマリー
   const m1Total = expenses.filter((e) => e.paidBy === m1).reduce((s, e) => s + e.amount, 0);
   const m2Total = expenses.filter((e) => e.paidBy === m2).reduce((s, e) => s + e.amount, 0);
-  const diff = m1Total - m2Total;
+  const m1Should = Math.round(expenses.reduce((s, e) => s + e.amount * (e.split[0] / 100), 0));
+  const diff = m1Total - m1Should;
 
   return (
     <>
-      {/* ── サマリー（誰がいくら立替） ── */}
-      {expenses.length > 0 && (
-        <div className="tatekae-summary">
-          <div className="tatekae-bars">
-            <div className="tatekae-bar-row">
-              <span className="tatekae-bar-name">{name1}</span>
-              <div className="tatekae-bar-track">
-                <div
-                  className="tatekae-bar-fill m1"
-                  style={{ width: total > 0 ? `${(m1Total / total) * 100}%` : '0%' }}
-                />
-              </div>
-              <span className="tatekae-bar-amount">{formatCurrency(m1Total)}</span>
-            </div>
-            <div className="tatekae-bar-row">
-              <span className="tatekae-bar-name">{name2}</span>
-              <div className="tatekae-bar-track">
-                <div
-                  className="tatekae-bar-fill m2"
-                  style={{ width: total > 0 ? `${(m2Total / total) * 100}%` : '0%' }}
-                />
-              </div>
-              <span className="tatekae-bar-amount">{formatCurrency(m2Total)}</span>
-            </div>
-          </div>
-          {diff !== 0 && (
-            <div className="tatekae-diff">
-              差引: {diff > 0
-                ? `${name1}が${formatCurrency(diff)}多く立替`
-                : `${name2}が${formatCurrency(Math.abs(diff))}多く立替`}
-            </div>
-          )}
-          <div className="tatekae-total">合計 {formatCurrency(total)}</div>
+      {/* ── ステータスバナー ── */}
+      {isLocked && (
+        <div className="status-banner locked">
+          <span>{settlement?.paidAt ? '💸 振込済み' : '✅ 確定済み'}</span>
+          <span className="status-banner-sub">編集・削除は取り下げ後に行えます</span>
         </div>
       )}
 
-      {/* ── 明細リスト ── */}
-      {expenses.length > 0 && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="swipe-delete-hint">← スワイプで削除</div>
-          <div className="multi-entry-list">
-            <AnimatePresence initial={false}>
-            {expenses.map((exp) => (
-              <motion.div
-                key={exp.id}
-                initial={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                transition={{ duration: 0.2 }}
-              >
-              <SwipeDeleteItem
-                key={exp.id}
-                onDelete={async () => { await deleteExpense(exp.id); }}
-              >
-                <div className="multi-entry-info">
-                  <span className="multi-entry-amount">{formatCurrency(exp.amount)}</span>
-                  <span className="multi-entry-meta">
-                    {household.memberNames[exp.paidBy] ?? '?'} 立替
-                    {exp.note && ` · ${exp.note}`}
-                  </span>
-                </div>
-              </SwipeDeleteItem>
-              </motion.div>
-            ))}
-            </AnimatePresence>
-          </div>
-        </div>
-      )}
-
-      {/* ── 追加フォーム ── */}
+      {/* ── 追加フォーム（最上部に配置・開いたら他を隠す） ── */}
       <AnimatePresence>
         {showForm && (
           <motion.div
@@ -622,7 +598,6 @@ function MultiEntryView({
                 </div>
               </div>
 
-              {/* ── 割り勘スライダー ── */}
               {isWarikan && (
                 <div className="form-group">
                   <label className="form-label">負担割合</label>
@@ -686,7 +661,84 @@ function MultiEntryView({
         )}
       </AnimatePresence>
 
-      {!showForm && (
+      {/* ── サマリー（差額ファースト） ── */}
+      {expenses.length > 0 && (
+        <div className="tatekae-summary">
+          {diff !== 0 ? (
+            <div className="tatekae-diff-hero">
+              <div className="tatekae-diff-label">精算額</div>
+              <div className="tatekae-diff-amount">{formatCurrency(Math.abs(diff))}</div>
+              <div className="tatekae-diff-detail">
+                {diff > 0
+                  ? `${name2} → ${name1} へ支払い`
+                  : `${name1} → ${name2} へ支払い`}
+              </div>
+            </div>
+          ) : (
+            <div className="tatekae-diff-hero">
+              <div className="tatekae-diff-label">精算額</div>
+              <div className="tatekae-diff-amount">¥0</div>
+              <div className="tatekae-diff-detail">差額なし</div>
+            </div>
+          )}
+          <div className="tatekae-bars">
+            <div className="tatekae-bar-row">
+              <span className="tatekae-bar-name">{name1}</span>
+              <div className="tatekae-bar-track">
+                <div
+                  className="tatekae-bar-fill m1"
+                  style={{ width: total > 0 ? `${(m1Total / total) * 100}%` : '0%' }}
+                />
+              </div>
+              <span className="tatekae-bar-amount">{formatCurrency(m1Total)}</span>
+            </div>
+            <div className="tatekae-bar-row">
+              <span className="tatekae-bar-name">{name2}</span>
+              <div className="tatekae-bar-track">
+                <div
+                  className="tatekae-bar-fill m2"
+                  style={{ width: total > 0 ? `${(m2Total / total) * 100}%` : '0%' }}
+                />
+              </div>
+              <span className="tatekae-bar-amount">{formatCurrency(m2Total)}</span>
+            </div>
+          </div>
+          <div className="tatekae-total">合計 {formatCurrency(total)}・{expenses.length}件</div>
+        </div>
+      )}
+
+      {/* ── 明細リスト（タップで編集） ── */}
+      {expenses.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          {!isLocked && (
+            <div style={{
+              padding: '8px 16px 4px', fontSize: 11, opacity: 0.4, textAlign: 'center',
+            }}>タップして編集</div>
+          )}
+          <div className="multi-entry-list">
+            {expenses.map((exp) => (
+              <motion.div
+                key={exp.id}
+                className={`multi-entry-row ${isLocked ? 'locked' : ''}`}
+                onClick={() => openEdit(exp)}
+                whileTap={isLocked ? undefined : { scale: 0.97 }}
+                layout
+              >
+                <div className="multi-entry-info">
+                  <span className="multi-entry-amount">{formatCurrency(exp.amount)}</span>
+                  <span className="multi-entry-meta">
+                    {household.memberNames[exp.paidBy] ?? '?'} 立替
+                    {exp.note && ` · ${exp.note}`}
+                  </span>
+                </div>
+                {!isLocked && <span style={{ fontSize: 14, opacity: 0.3 }}>›</span>}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isLocked && !showForm && (
         <motion.button
           className="btn btn-primary"
           onClick={() => setShowForm(true)}
@@ -695,6 +747,97 @@ function MultiEntryView({
           ＋ {cat.name}を登録
         </motion.button>
       )}
+
+      {/* ── 編集ボトムシート ── */}
+      <AnimatePresence>
+        {editingExp && (
+          <>
+            <motion.div
+              className="bottom-sheet-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingExp(null)}
+            />
+            <motion.div
+              className="bottom-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              <div className="bottom-sheet-handle" />
+              <h3 style={{ textAlign: 'center', marginBottom: 16, fontSize: 16 }}>立替を編集</h3>
+
+              <div className="form-group">
+                <label className="form-label">金額</label>
+                <div className="entry-amount-display small">
+                  <span className="currency">¥</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="entry-amount-input"
+                    value={editAmountStr}
+                    onChange={(e) => setEditAmountStr(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">立て替えた人</label>
+                <div className="payer-toggle">
+                  {household.memberOrder.filter(Boolean).map((uid) => (
+                    <button
+                      key={uid}
+                      className={`payer-btn${editPaidBy === uid ? ' active' : ''}`}
+                      onClick={() => setEditPaidBy(uid)}
+                    >
+                      {household.memberNames[uid] ?? uid.slice(0, 6)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">メモ</label>
+                <input
+                  className="form-input"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                <button
+                  className="btn btn-danger"
+                  style={{ flex: 1 }}
+                  onClick={handleEditDelete}
+                  disabled={saving}
+                >
+                  🗑 削除
+                </button>
+                <motion.button
+                  className="btn btn-primary"
+                  style={{ flex: 2 }}
+                  onClick={handleEditSave}
+                  disabled={saving || (parseInt(editAmountStr, 10) || 0) === 0}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {saving ? '保存中…' : '保存'}
+                </motion.button>
+              </div>
+
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', marginTop: 8 }}
+                onClick={() => setEditingExp(null)}
+              >
+                キャンセル
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

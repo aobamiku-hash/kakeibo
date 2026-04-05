@@ -13,6 +13,7 @@ import {
   limit,
   writeBatch,
   deleteField,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -69,58 +70,71 @@ export function useHousehold() {
       const snap = await getDocs(q);
 
       if (!snap.empty) {
-        // 既存世帯に参加
+        // 既存世帯に参加（トランザクションで競合を防止）
         const hDoc = snap.docs[0];
-        const hData = hDoc.data();
-        const oldOrder: string[] = hData.memberOrder ?? [];
-        const hasPlaceholder = oldOrder.includes(PLACEHOLDER_UID);
+        const hRef = doc(db, 'households', hDoc.id);
 
-        // memberOrder からプレースホルダーを実UIDに置換
-        const newOrder = hasPlaceholder
-          ? oldOrder.map((id: string) => (id === PLACEHOLDER_UID ? uid : id))
-          : [...oldOrder, uid];
+        const joined = await runTransaction(db, async (tx) => {
+          const freshSnap = await tx.get(hRef);
+          if (!freshSnap.exists() || freshSnap.data().memberCount !== 1) return false;
 
-        await updateDoc(doc(db, 'households', hDoc.id), {
-          members: arrayUnion(uid),
-          memberOrder: newOrder,
-          [`memberNames.${uid}`]: hData.memberNames?.[PLACEHOLDER_UID] ?? displayName,
-          [`memberNames.${PLACEHOLDER_UID}`]: deleteField(),
-          memberCount: 2,
+          const hData = freshSnap.data();
+          const oldOrder: string[] = hData.memberOrder ?? [];
+          const hasPlaceholder = oldOrder.includes(PLACEHOLDER_UID);
+          const newOrder = hasPlaceholder
+            ? oldOrder.map((id: string) => (id === PLACEHOLDER_UID ? uid : id))
+            : [...oldOrder, uid];
+
+          tx.update(hRef, {
+            members: arrayUnion(uid),
+            memberOrder: newOrder,
+            [`memberNames.${uid}`]: hData.memberNames?.[PLACEHOLDER_UID] ?? displayName,
+            [`memberNames.${PLACEHOLDER_UID}`]: deleteField(),
+            memberCount: 2,
+          });
+          return hasPlaceholder;
         });
-        await setDoc(doc(db, 'userHouseholds', uid), {
-          householdId: hDoc.id,
-        });
 
-        // プレースホルダーがあった場合、全支出の paidBy を置換
-        if (hasPlaceholder) {
-          await replacePlaceholderInExpenses(hDoc.id, uid);
+        if (joined !== false) {
+          await setDoc(doc(db, 'userHouseholds', uid), {
+            householdId: hDoc.id,
+          });
+          if (joined === true) {
+            await replacePlaceholderInExpenses(hDoc.id, uid);
+          }
+        } else {
+          // 競合で参加できなかった → 新規作成にフォールバック
+          await createNewHousehold(uid, displayName);
         }
       } else {
-        // 世帯を新規作成
-        const categories: Category[] = DEFAULT_CATEGORIES.map((c, i) => ({
-          ...c,
-          id: `cat_${i}`,
-        }));
-
-        const hRef = doc(collection(db, 'households'));
-        await setDoc(hRef, {
-          members: [uid],
-          memberNames: { [uid]: displayName },
-          memberOrder: [uid],
-          inviteCode: '',
-          categories,
-          memberCount: 1,
-          createdAt: Timestamp.now(),
-        });
-        await setDoc(doc(db, 'userHouseholds', uid), {
-          householdId: hRef.id,
-        });
+        await createNewHousehold(uid, displayName);
       }
     } catch (e) {
       console.error('自動セットアップ失敗:', e);
       setSetupError('世帯のセットアップに失敗しました。再読み込みしてください。');
       setLoading(false);
     }
+  }
+
+  async function createNewHousehold(uid: string, displayName: string) {
+    const categories: Category[] = DEFAULT_CATEGORIES.map((c, i) => ({
+      ...c,
+      id: `cat_${i}`,
+    }));
+
+    const hRef = doc(collection(db, 'households'));
+    await setDoc(hRef, {
+      members: [uid],
+      memberNames: { [uid]: displayName },
+      memberOrder: [uid],
+      inviteCode: '',
+      categories,
+      memberCount: 1,
+      createdAt: Timestamp.now(),
+    });
+    await setDoc(doc(db, 'userHouseholds', uid), {
+      householdId: hRef.id,
+    });
   }
 
   /** プレースホルダーUIDを実UIDに一括置換 */

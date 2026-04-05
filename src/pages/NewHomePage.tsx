@@ -12,6 +12,7 @@ import {
   currentYearMonth,
   formatYearMonth,
   formatCurrency,
+  todayDateString,
 } from '../utils/calculation';
 import type { Household, Settlement } from '../types';
 
@@ -41,7 +42,7 @@ export default function HomePage({ household }: Props) {
     );
     const unsub = onSnapshot(q, (snap) => {
       const pending: { yearMonth: string; settlement: Settlement }[] = [];
-      const nowStr = new Date().toISOString().slice(0, 10);
+      const nowStr = todayDateString();
       snap.forEach((d) => {
         const s = d.data() as Settlement;
         // 未振込 OR 振込予定日が今日以降 → pending として表示
@@ -52,7 +53,10 @@ export default function HomePage({ household }: Props) {
       });
       pending.sort((a, b) => (b.yearMonth > a.yearMonth ? 1 : -1));
       setPendingPayments(pending);
-    }, () => setPendingPayments([]));
+    }, (err) => {
+      console.error('振込待ち取得エラー:', err);
+      setPendingPayments([]);
+    });
     return unsub;
   }, [household.id, yearMonth]);
 
@@ -104,8 +108,7 @@ export default function HomePage({ household }: Props) {
     const entered = new Set(expenses.map((e) => e.categoryId));
     return household.categories.map((cat) => ({
       ...cat,
-      entered: entered.has(cat.id) || cat.id === 'cat_0' || cat.id === 'cat_3',
-      skipped: cat.id === 'cat_2' && !entered.has(cat.id),
+      entered: entered.has(cat.id) || cat.id === 'cat_0' || cat.id === 'cat_2' || cat.id === 'cat_3',
     }));
   }, [expenses, household]);
 
@@ -117,7 +120,7 @@ export default function HomePage({ household }: Props) {
   const scheduledPayDate = settlement?.scheduledPayDate ?? '';
 
   // 振込予定日が今日以降かどうか
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayDateString();
   const isPayDatePending = scheduledPayDate && scheduledPayDate >= todayStr;
 
   const statusText = isPaid
@@ -179,15 +182,41 @@ export default function HomePage({ household }: Props) {
                 <div className="digest-body">
                   {summary.settlement !== 0 && (
                     <div className="digest-settlement digest-settlement-hero">
-                      {summary.settlement > 0
-                        ? `${name2} → ${name1} ${formatCurrency(summary.settlement)}`
-                        : `${name1} → ${name2} ${formatCurrency(Math.abs(summary.settlement))}`}
+                      <div className="digest-settlement-direction">
+                        {summary.settlement > 0
+                          ? `${name2} → ${name1}`
+                          : `${name1} → ${name2}`}
+                      </div>
+                      <div className="digest-settlement-value">
+                        {formatCurrency(Math.abs(summary.settlement))}
+                      </div>
                     </div>
                   )}
                   <div className="digest-sub-row">
                     <span className="digest-total-sub">合計 {formatCurrency(summary.totalAmount)}</span>
                     <span className="digest-member-sub">{name1} {formatCurrency(summary.member1Should)} / {name2} {formatCurrency(summary.member2Should)}</span>
                   </div>
+
+                  {/* カテゴリダイジェスト */}
+                  <div className="digest-cat-grid">
+                    {household.categories.map((cat) => {
+                      const catTotal = summary.byCategory.find((bc) => bc.category.id === cat.id)?.total ?? 0;
+                      return (
+                        <div
+                          key={cat.id}
+                          className={`digest-cat-tile${catTotal > 0 ? ' has-amount' : ''}`}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/entry/${cat.id}?ym=${yearMonth}`); }}
+                        >
+                          <span className="digest-cat-tile-emoji">{cat.emoji}</span>
+                          <span className="digest-cat-tile-name">{cat.name}</span>
+                          <span className="digest-cat-tile-amount">
+                            {catTotal > 0 ? formatCurrency(catTotal) : '—'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
                   {/* アクションヒント（カード内） */}
                   {isPaid && isPayDatePending && (
                     <div className="digest-action confirmed">

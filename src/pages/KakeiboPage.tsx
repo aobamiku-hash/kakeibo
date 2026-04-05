@@ -9,6 +9,7 @@ import {
   shiftMonth,
   formatYearMonth,
   formatCurrency,
+  todayDateString,
 } from '../utils/calculation';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -74,7 +75,7 @@ export default function KakeiboPage({ household }: Props) {
   }, [expenses]);
 
   const allCatsEntered = household.categories.every((cat) => {
-    if (cat.id === 'cat_2') return true;
+    if (cat.id === 'cat_0' || cat.id === 'cat_2' || cat.id === 'cat_3') return true;
     return catStatus.has(cat.id);
   });
 
@@ -83,7 +84,7 @@ export default function KakeiboPage({ household }: Props) {
   const scheduledPayDate = settlement?.scheduledPayDate ?? '';
 
   // 振込予定日の入力用 state
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayDateString();
   const [payDate, setPayDate] = useState(todayStr);
 
   const goMonth = (dir: -1 | 1) => {
@@ -98,8 +99,13 @@ export default function KakeiboPage({ household }: Props) {
 
   const handlePayReport = async () => {
     if (!user || !household || !payDate) return;
-    const ref = doc(db, 'households', household.id, 'settlements', yearMonth);
-    await updateDoc(ref, { paidAt: Timestamp.now(), paidBy: user.uid, scheduledPayDate: payDate });
+    try {
+      const ref = doc(db, 'households', household.id, 'settlements', yearMonth);
+      await updateDoc(ref, { paidAt: Timestamp.now(), paidBy: user.uid, scheduledPayDate: payDate });
+    } catch (err) {
+      console.error('振込報告エラー:', err);
+      alert('振込報告に失敗しました');
+    }
   };
 
   return (

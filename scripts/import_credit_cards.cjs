@@ -17,6 +17,23 @@ const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/dat
 const OLD_CATEGORY_ID = 'cat_4'; // 既存の集計行のカテゴリID
 const SPLIT = [60, 40];
 
+// cat_credit_* → cat_4 + subcategory マッピング
+const SUBCATEGORY_MAP = {
+  cat_credit_grocery:   { subcategory: 'grocery',   subcategoryName: '食費' },
+  cat_credit_dining:    { subcategory: 'dining',    subcategoryName: '外食' },
+  cat_credit_daily:     { subcategory: 'daily',     subcategoryName: '日用品' },
+  cat_credit_shopping:  { subcategory: 'shopping',  subcategoryName: '買い物' },
+  cat_credit_transport: { subcategory: 'transport', subcategoryName: '交通・車' },
+  cat_credit_leisure:   { subcategory: 'leisure',   subcategoryName: 'レジャー' },
+  cat_credit_other:     { subcategory: 'other',     subcategoryName: 'その他' },
+};
+
+// paidBy 名前 → Firebase UID マッピング
+const PAIDBY_UID_MAP = {
+  shinpei: 'A6H88EKmW3X4S1jmpNNNsFWDGh52',
+  yuka: 'gc994X7gigSHjx1DOCsEZqyyIw03',
+};
+
 const isDryRun = process.argv.includes('--dry-run');
 const deleteAggregates = process.argv.includes('--delete-aggregates');
 
@@ -244,19 +261,21 @@ async function main() {
   let added = 0;
   for (let i = 0; i < toWrite.length; i += CONCURRENCY) {
     const chunk = toWrite.slice(i, i + CONCURRENCY);
-    await Promise.all(chunk.map(item =>
-      firestoreCreate(expCollPath, toFsDoc({
+    await Promise.all(chunk.map(item => {
+      const sub = SUBCATEGORY_MAP[item.categoryId] || { subcategory: 'other', subcategoryName: 'その他' };
+      return firestoreCreate(expCollPath, toFsDoc({
         yearMonth: item.yearMonth,
-        categoryId: item.categoryId,
-        categoryName: item.categoryName,
+        categoryId: 'cat_4',
         amount: item.amount,
-        paidBy: item.paidBy,
+        paidBy: PAIDBY_UID_MAP[item.paidBy] || item.paidBy,
         split: SPLIT,
         note: `${item.date} ${item.storeName}`,
+        subcategory: sub.subcategory,
+        subcategoryName: sub.subcategoryName,
         createdAt: new Date().toISOString(),
         createdBy: 'credit_card_import',
-      }), token)
-    ));
+      }), token);
+    }));
     added += chunk.length;
     process.stdout.write(`  書き込み中: ${added}/${toWrite.length} 件\r`);
   }

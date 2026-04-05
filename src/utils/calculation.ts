@@ -44,12 +44,15 @@ export function calculateMonthSummary(
     .filter((c) => catTotals.has(c.id))
     .map((c) => ({ category: c, total: catTotals.get(c.id)! }));
 
+  const roundedTotal = Math.round(totalAmount);
+  const roundedM1Should = Math.round(member1Should);
+
   return {
     yearMonth: expenses[0]?.yearMonth ?? '',
-    totalAmount: Math.round(totalAmount),
+    totalAmount: roundedTotal,
     byCategory,
-    member1Should: Math.round(member1Should),
-    member2Should: Math.round(member2Should),
+    member1Should: roundedM1Should,
+    member2Should: roundedTotal - roundedM1Should,
     member1Paid: Math.round(member1Paid),
     member2Paid: Math.round(member2Paid),
     settlement: Math.round(member1Paid - member1Should),
@@ -78,4 +81,9 @@ export function shiftMonth(ym: string, delta: number): string {
 /** 金額フォーマット ¥123,456 */
 export function formatCurrency(n: number): string {
   return `¥${Math.abs(n).toLocaleString('ja-JP')}`;
+}
+
+/** 今日の日付を "YYYY-MM-DD" 形式で返す（JST基準） */
+export function todayDateString(): string {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
 }
