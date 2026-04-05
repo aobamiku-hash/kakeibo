@@ -10,15 +10,26 @@ service cloud.firestore {
     // ── 世帯 ──
     match /households/{householdId} {
       allow create: if request.auth != null;
-      allow read: if request.auth != null;
+      // 読み取り: メンバーのみ OR 参加候補者が memberCount==1 の世帯を検索
+      allow read: if request.auth != null
+        && (request.auth.uid in resource.data.members
+            || resource.data.memberCount == 1);
       allow update: if request.auth != null
         && (request.auth.uid in resource.data.members
             || resource.data.memberCount == 1);
 
       // ── 支出 ──
       match /expenses/{expenseId} {
-        allow read, write: if request.auth != null
-          && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+        function isMember() {
+          return request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+        }
+        allow read: if request.auth != null && isMember();
+        allow delete: if request.auth != null && isMember();
+        allow create, update: if request.auth != null && isMember()
+          && request.resource.data.amount is int
+          && request.resource.data.amount > 0
+          && request.resource.data.yearMonth is string
+          && request.resource.data.yearMonth.matches('^[0-9]{4}-[0-9]{2}$');
       }
 
       // ── 精算 ──
@@ -29,8 +40,13 @@ service cloud.firestore {
 
       // ── 伝言板 ──
       match /messages/{messageId} {
-        allow read, write: if request.auth != null
-          && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+        function isMember() {
+          return request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+        }
+        allow read, create: if request.auth != null && isMember();
+        allow update: if request.auth != null && isMember();
+        allow delete: if request.auth != null && isMember()
+          && resource.data.createdBy == request.auth.uid;
       }
 
       // ── 旅行カウントダウン ──

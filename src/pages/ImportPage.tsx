@@ -53,6 +53,7 @@ export default function ImportPage({ household }: Props) {
 
   const handleImport = async () => {
     if (!user) return;
+    if (!window.confirm('既存データを全て削除してからインポートします。\nこの操作は取り消せません。実行しますか？')) return;
     setStatus('running');
     setProgress(0);
 
