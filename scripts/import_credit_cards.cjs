@@ -1,17 +1,22 @@
 /**
  * クレカ明細一括インポートスクリプト（Firestore REST API 版）
- * C:\py\kakeibo\credit_card_items.json を読み込み、
+ * 解決された credit_card_items.json を読み込み、
  * Firestore の households/{id}/expenses に個別取引として追加する。
  *
  * 使い方:
  *   node scripts/import_credit_cards.cjs              # 通常実行
  *   node scripts/import_credit_cards.cjs --dry-run    # ドライラン（書き込みなし）
  *   node scripts/import_credit_cards.cjs --delete-aggregates  # 集計行を削除後インポート
+ *   node scripts/import_credit_cards.cjs --items-path C:\\path\\to\\credit_card_items.json
  */
 const fs = require('fs');
 const path = require('path');
+const {
+  getCreditCardItemsPathHelp,
+  resolveCreditCardItemsPath,
+} = require('./credit_card_items_path.cjs');
 
-const ITEMS_PATH = path.join('C:\\', 'py', 'kakeibo', 'credit_card_items.json');
+const { itemsPath: ITEMS_PATH } = resolveCreditCardItemsPath();
 const PROJECT_ID = 'kakeibo-f4a7a';
 const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const OLD_CATEGORY_ID = 'cat_4'; // 既存の集計行のカテゴリID
@@ -162,8 +167,10 @@ async function main() {
   // 明細 JSON 読み込み
   if (!fs.existsSync(ITEMS_PATH)) {
     console.error(`ファイルが見つかりません: ${ITEMS_PATH}`);
+    console.error(getCreditCardItemsPathHelp());
     process.exit(1);
   }
+  console.log(`📄 明細JSON: ${ITEMS_PATH}`);
   const { items, totalItems, totalAmount, byYearMonth } = JSON.parse(
     fs.readFileSync(ITEMS_PATH, 'utf-8')
   );

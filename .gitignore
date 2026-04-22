@@ -26,3 +26,7 @@ Thumbs.db
 
 # バックアップデータ
 backups/
+
+# クレカ取込の一時データ
+scripts/credit_card_items.json
+scripts/credit_card_sample/

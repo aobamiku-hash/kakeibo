@@ -3,6 +3,10 @@
  */
 const fs = require('fs');
 const path = require('path');
+const {
+  getCreditCardItemsPathHelp,
+  resolveCreditCardItemsPath,
+} = require('./credit_card_items_path.cjs');
 
 const credPath = path.join(process.env.USERPROFILE, '.config', 'configstore', 'firebase-tools.json');
 const config = JSON.parse(fs.readFileSync(credPath, 'utf-8'));
@@ -72,8 +76,9 @@ async function main() {
 
   // importData.json と比較
   console.log(`\n--- credit_card_items.json との比較 ---`);
-  const itemsPath = path.join('C:', 'py', 'kakeibo', 'credit_card_items.json');
+  const { itemsPath } = resolveCreditCardItemsPath();
   if (fs.existsSync(itemsPath)) {
+    console.log(`  参照ファイル: ${itemsPath}`);
     const { byYearMonth } = JSON.parse(fs.readFileSync(itemsPath, 'utf-8'));
     console.log('  yearMonth | Firestore集計 | CSVパース | 差分');
     const allYm = new Set([...agg.map(a => a.ym), ...Object.keys(byYearMonth)]);
@@ -84,6 +89,9 @@ async function main() {
       const mark = diff === 0 ? '==' : diff > 0 ? `+${diff}` : `${diff}`;
       console.log(`  ${ym}  | ${String(fsAmt).padStart(8)} | ${String(csvAmt).padStart(8)} | ${mark}`);
     }
+  } else {
+    console.log(`  明細 JSON が見つかりません: ${itemsPath}`);
+    console.log(getCreditCardItemsPathHelp());
   }
 }
 

@@ -70,6 +70,32 @@ firebase deploy
 3. **ゆか** が Google ログイン → 「招待コードで参加」→ コードと表示名を入力
 4. 完了！支出を追加して割り勘精算を始めましょう
 
+## クレカ明細の取込
+
+標準フローはこの repo だけで完結します。
+
+1. 明細ファイルを `scripts/credit_card_sample/` に置く
+2. `C:/Users/aobam/AppData/Local/Programs/Python/Python313/python.exe scripts/parse_credit_cards.py` を実行する
+3. `node scripts/import_credit_cards.cjs --dry-run` で確認する
+4. 問題なければ `node scripts/import_credit_cards.cjs --delete-aggregates` で本番反映する
+
+クレカ取込スクリプトは、明細 JSON を次の順で解決します。
+
+1. `--items-path <path>` で明示したファイル
+2. 環境変数 `KAKEIBO_CREDIT_ITEMS_PATH`
+3. `scripts/credit_card_items.json`
+
+例:
+
+```bash
+C:/Users/aobam/AppData/Local/Programs/Python/Python313/python.exe scripts/parse_credit_cards.py
+node scripts/import_credit_cards.cjs --dry-run
+node scripts/check_credit_data.cjs
+node scripts/import_credit_cards.cjs --dry-run --items-path "C:\path\to\credit_card_items.json"
+```
+
+外部のクレカ補助 repo を残す場合でも、`--items-path` を使えばその JSON を直接読み込めます。
+
 ## デフォルトカテゴリ
 
 | カテゴリ | 絵文字 | デフォルト割り勘 |
