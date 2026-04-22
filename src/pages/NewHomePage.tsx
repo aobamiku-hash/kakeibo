@@ -248,7 +248,7 @@ export default function HomePage({ household }: Props) {
                     className="digest-quick-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/entry/${cat.id}?ym=${yearMonth}`);
+                      navigate(`/entry/${cat.id}?ym=${yearMonth}${cat.id === 'cat_5' || cat.id === 'cat_6' ? '&openForm=1' : ''}`);
                     }}
                   >
                     {cat.emoji} {cat.name}

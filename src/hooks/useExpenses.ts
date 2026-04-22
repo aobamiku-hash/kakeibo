@@ -90,7 +90,7 @@ export function useExpenses(household: Household | null, yearMonth: string) {
   const addExpense = useCallback(
     async (data: Omit<Expense, 'id' | 'createdAt' | 'createdBy'>) => {
       if (!household || !user) return;
-      await addDoc(collection(db, 'households', household.id, 'expenses'), {
+      return addDoc(collection(db, 'households', household.id, 'expenses'), {
         ...data,
         createdAt: Timestamp.now(),
         createdBy: user.uid,

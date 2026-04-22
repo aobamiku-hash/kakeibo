@@ -1633,6 +1633,28 @@ a { text-decoration: none; color: inherit; }
   font-size: 12px;
   color: var(--color-text-secondary);
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.multi-entry-date {
+  font-size: 11px;
+  opacity: 0.45;
+  background: rgba(255,255,255,0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.multi-entry-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b6f0c2;
+  background: rgba(46,160,67,0.18);
+  border: 1px solid rgba(46,160,67,0.3);
+  padding: 1px 6px;
+  border-radius: 999px;
 }
 
 .multi-entry-delete {
@@ -1972,6 +1994,7 @@ a { text-decoration: none; color: inherit; }
   border-bottom: 0.5px solid var(--color-separator);
   cursor: pointer;
   transition: background 0.15s ease;
+  scroll-margin-top: 96px;
 }
 
 .multi-entry-row:last-child {
@@ -1985,6 +2008,10 @@ a { text-decoration: none; color: inherit; }
 .multi-entry-row.locked {
   cursor: default;
   opacity: 0.6;
+}
+
+.multi-entry-row.newly-added {
+  box-shadow: inset 3px 0 0 rgba(46,160,67,0.9);
 }
 
 /* ── ボトムシート ── */
@@ -2017,6 +2044,94 @@ a { text-decoration: none; color: inherit; }
   background: rgba(255,255,255,0.15);
   border-radius: 2px;
   margin: 0 auto 12px;
+}
+
+.multi-entry-sheet-hero {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(46,160,67,0.16), rgba(88,166,255,0.12));
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.multi-entry-sheet-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.multi-entry-sheet-amount {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-text);
+  letter-spacing: -0.04em;
+}
+
+.multi-entry-sheet-detail {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 6px;
+}
+
+.multi-entry-section-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.note-chip-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.note-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.18s ease;
+}
+
+.note-chip.active {
+  color: #fff;
+  background: rgba(46,160,67,0.2);
+  border-color: rgba(46,160,67,0.45);
+  box-shadow: 0 0 16px rgba(46,160,67,0.12);
+}
+
+/* ── 立替登録 FAB ── */
+.tatekae-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 32px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  z-index: 200;
+  box-shadow: 0 4px 20px rgba(46,160,67,0.55), 0 2px 8px rgba(0,0,0,0.4);
+  animation: fab-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes fab-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(46,160,67,0.55), 0 2px 8px rgba(0,0,0,0.4); }
+  50%       { box-shadow: 0 4px 28px rgba(46,160,67,0.85), 0 2px 8px rgba(0,0,0,0.4); }
 }
 
 /* ── スキップテキスト ── */

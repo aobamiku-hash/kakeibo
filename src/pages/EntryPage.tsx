@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import type { DocumentReference, DocumentData } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useExpenses } from '../hooks/useExpenses';
 import { formatCurrency, currentYearMonth, formatYearMonth } from '../utils/calculation';
@@ -15,6 +16,7 @@ export default function EntryPage({ household }: Props) {
   const { catId } = useParams<{ catId: string }>();
   const [searchParams] = useSearchParams();
   const yearMonth = searchParams.get('ym') ?? currentYearMonth();
+  const openFormParam = searchParams.get('openForm') === '1';
   const navigate = useNavigate();
   const { user } = useAuth();
   const { expenses, settlement, addExpense, updateExpense, deleteExpense } = useExpenses(household, yearMonth);
@@ -83,6 +85,7 @@ export default function EntryPage({ household }: Props) {
           m1={m1}
           m2={m2}
           user={user}
+          openFormOnMount={openFormParam}
         />
       ) : (
         <SingleEntryView
@@ -208,9 +211,9 @@ function CreditCardView({
                     style={{ overflow: 'hidden' }}
                   >
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0' }}>
-                      {group.items
-                        .toSorted((a, b) => b.amount - a.amount)
-                        .map((exp) => {
+                      {[...group.items]
+                        .sort((a: Expense, b: Expense) => b.amount - a.amount)
+                        .map((exp: Expense) => {
                           const payer = household.memberNames[exp.paidBy] ?? '?';
                           return (
                             <div
@@ -256,7 +259,7 @@ function SingleEntryView({
   cat: Household['categories'][number];
   yearMonth: string;
   existing: Expense | null;
-  addExpense: (d: Omit<Expense, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>;
+  addExpense: (d: Omit<Expense, 'id' | 'createdAt' | 'createdBy'>) => Promise<DocumentReference<DocumentData> | undefined>;
   updateExpense: (id: string, d: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   isFixed: boolean;
@@ -408,85 +411,174 @@ function SingleEntryView({
    複数入力ビュー（立て替え / 割り勘）
    ═══════════════════════════════════════ */
 function MultiEntryView({
-  household, cat, yearMonth, expenses, settlement, addExpense, updateExpense, deleteExpense, isWarikan, m1, m2, user,
+  household, cat, yearMonth, expenses, settlement, addExpense, updateExpense, deleteExpense, isWarikan, m1, m2, user, openFormOnMount,
 }: {
   household: Household;
   cat: Household['categories'][number];
   yearMonth: string;
   expenses: Expense[];
   settlement: Settlement | null;
-  addExpense: (d: Omit<Expense, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>;
+  addExpense: (d: Omit<Expense, 'id' | 'createdAt' | 'createdBy'>) => Promise<DocumentReference<DocumentData> | undefined>;
   updateExpense: (id: string, d: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   isWarikan: boolean;
   m1: string;
   m2: string;
   user: { uid: string } | null;
+  openFormOnMount?: boolean;
 }) {
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(openFormOnMount ?? false);
   const [amountStr, setAmountStr] = useState('');
   const [note, setNote] = useState('');
   const [paidBy, setPaidBy] = useState(m1);
   const [splitA, setSplitA] = useState(isWarikan ? 60 : 0);
   const [splitB, setSplitB] = useState(isWarikan ? 40 : 100);
-  const [saving, setSaving] = useState(false);
   const [editingExp, setEditingExp] = useState<Expense | null>(null);
   const [editAmountStr, setEditAmountStr] = useState('');
   const [editNote, setEditNote] = useState('');
   const [editPaidBy, setEditPaidBy] = useState(m1);
+  const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
+  const [pendingRevealId, setPendingRevealId] = useState<string | null>(null);
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+  const expenseRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const focusTimerRef = useRef<number | null>(null);
+  const highlightTimerRef = useRef<number | null>(null);
 
   const amount = parseInt(amountStr, 10) || 0;
   const name1 = household.memberNames[m1] ?? 'メンバー1';
   const name2 = household.memberNames[m2] ?? 'メンバー2';
+  const selectedPayerName = household.memberNames[paidBy] ?? 'メンバー';
+  const noteSuggestions = isWarikan
+    ? ['ごはん', '買い物', 'おでかけ', 'プレゼント']
+    : ['ランチ', '日用品', '交通', '立替精算'];
 
   const isLocked = !!(settlement?.confirmed || settlement?.paidAt);
 
   // iOS: ボトムシート表示中はbodyスクロールをロック
   useEffect(() => {
-    if (editingExp) {
+    if (editingExp || showForm) {
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = ''; };
     }
-  }, [editingExp]);
+  }, [editingExp, showForm]);
 
   const handleSlider = useCallback((val: number) => {
     setSplitA(val);
     setSplitB(100 - val);
   }, []);
 
-  const handleAdd = async () => {
-    if (amount === 0 || !user) return;
-    setSaving(true);
-    try {
-      let finalSplit: [number, number];
-      let finalPaidBy: string;
+  const focusAmountInput = useCallback(() => {
+    const input = amountInputRef.current;
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  }, []);
 
-      if (isWarikan) {
-        finalSplit = [splitA, splitB];
-        finalPaidBy = paidBy;
-      } else {
-        finalSplit = paidBy === m1 ? [0, 100] : [100, 0];
-        finalPaidBy = paidBy;
+  useEffect(() => {
+    if (!showForm) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      focusAmountInput();
+      focusTimerRef.current = window.setTimeout(() => {
+        focusAmountInput();
+        focusTimerRef.current = null;
+      }, 220);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      if (focusTimerRef.current !== null) {
+        window.clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = null;
       }
+    };
+  }, [focusAmountInput, showForm]);
 
-      await addExpense({
-        yearMonth,
-        categoryId: cat.id,
-        amount,
-        paidBy: finalPaidBy,
-        split: finalSplit,
-        note,
-      });
+  useEffect(() => {
+    if (!pendingRevealId) return;
 
-      setAmountStr('');
-      setNote('');
-      setShowForm(false);
-    } catch (err) {
-      console.error('追加エラー:', err);
-      alert('追加に失敗しました');
-    } finally {
-      setSaving(false);
+    const targetRow = expenseRowRefs.current[pendingRevealId];
+    if (!targetRow) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setNewlyAddedId(pendingRevealId);
+      if (highlightTimerRef.current !== null) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+      highlightTimerRef.current = window.setTimeout(() => {
+        setNewlyAddedId((current) => (current === pendingRevealId ? null : current));
+        highlightTimerRef.current = null;
+      }, 2200);
+      setPendingRevealId(null);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [expenses, pendingRevealId]);
+
+  useEffect(() => () => {
+    if (focusTimerRef.current !== null) {
+      window.clearTimeout(focusTimerRef.current);
     }
+    if (highlightTimerRef.current !== null) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+  }, []);
+
+  const registerExpenseRow = useCallback((id: string, node: HTMLDivElement | null) => {
+    if (node) {
+      expenseRowRefs.current[id] = node;
+      return;
+    }
+    delete expenseRowRefs.current[id];
+  }, []);
+
+  const openCreateSheet = useCallback(() => {
+    setShowForm(true);
+  }, []);
+
+  const handleAdd = () => {
+    if (amount === 0 || !user) return;
+
+    let finalSplit: [number, number];
+    let finalPaidBy: string;
+    if (isWarikan) {
+      finalSplit = [splitA, splitB];
+      finalPaidBy = paidBy;
+    } else {
+      finalSplit = paidBy === m1 ? [0, 100] : [100, 0];
+      finalPaidBy = paidBy;
+    }
+    const expenseData = {
+      yearMonth,
+      categoryId: cat.id,
+      amount,
+      paidBy: finalPaidBy,
+      split: finalSplit,
+      note,
+    };
+    const previousAmountStr = amountStr;
+    const previousNote = note;
+
+    // 楽観的UI: フォームを即座にリセット（onSnapshotでリストが更新される）
+    setAmountStr('');
+    setNote('');
+    setShowForm(false);
+
+    // バックグラウンドで書き込み（persistentLocalCacheがローカルに書き込み後にサーバー同期）
+    addExpense(expenseData).then((docRef) => {
+      // 追加成功→snapshot 反映後にスクロールとハイライトを実行
+      if (docRef?.id) {
+        setPendingRevealId(docRef.id);
+      }
+    }).catch((err) => {
+      console.error('追加エラー:', err);
+      setAmountStr(previousAmountStr);
+      setNote(previousNote);
+      setShowForm(true);
+      alert('追加に失敗しました（再度お試しください）');
+    });
   };
 
   const openEdit = (exp: Expense) => {
@@ -497,45 +589,44 @@ function MultiEntryView({
     setEditPaidBy(exp.paidBy);
   };
 
-  const handleEditSave = async () => {
+  const handleEditSave = () => {
     if (!editingExp) return;
     const newAmount = parseInt(editAmountStr, 10) || 0;
     if (newAmount === 0) return;
     if (!window.confirm(`¥${newAmount.toLocaleString()} に更新しますか？`)) return;
-    setSaving(true);
-    try {
-      const updates: Partial<Expense> = {
-        amount: newAmount,
-        note: editNote,
-        paidBy: editPaidBy,
-      };
-      if (!isWarikan) {
-        updates.split = editPaidBy === m1 ? [0, 100] : [100, 0];
-      }
 
-      await updateExpense(editingExp.id, updates);
-      setEditingExp(null);
-    } catch (err) {
-      console.error('編集エラー:', err);
-      alert('更新に失敗しました');
-    } finally {
-      setSaving(false);
+    const updates: Partial<Expense> = {
+      amount: newAmount,
+      note: editNote,
+      paidBy: editPaidBy,
+    };
+    if (!isWarikan) {
+      updates.split = editPaidBy === m1 ? [0, 100] : [100, 0];
     }
+    const targetId = editingExp.id;
+
+    // 楽観的UI: シートを即座に閉じる
+    setEditingExp(null);
+
+    updateExpense(targetId, updates).catch((err) => {
+      console.error('編集エラー:', err);
+      alert('更新に失敗しました（再度お試しください）');
+    });
   };
 
-  const handleEditDelete = async () => {
+  const handleEditDelete = () => {
     if (!editingExp) return;
     if (!window.confirm('この立替を削除しますか？この操作は取り消せません。')) return;
-    setSaving(true);
-    try {
-      await deleteExpense(editingExp.id);
-      setEditingExp(null);
-    } catch (err) {
+
+    const targetId = editingExp.id;
+
+    // 楽観的UI: シートを即座に閉じる
+    setEditingExp(null);
+
+    deleteExpense(targetId).catch((err) => {
       console.error('削除エラー:', err);
-      alert('削除に失敗しました');
-    } finally {
-      setSaving(false);
-    }
+      alert('削除に失敗しました（再度お試しください）');
+    });
   };
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
@@ -553,113 +644,6 @@ function MultiEntryView({
           <span className="status-banner-sub">編集・削除は取り下げ後に行えます</span>
         </div>
       )}
-
-      {/* ── 追加フォーム（最上部に配置・開いたら他を隠す） ── */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            className="card"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            style={{ overflow: 'hidden', marginBottom: 16 }}
-          >
-            <div style={{ padding: '4px 0' }}>
-              <div className="form-group">
-                <label className="form-label">金額</label>
-                <div className="entry-amount-display small">
-                  <span className="currency">¥</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="entry-amount-input"
-                    value={amountStr}
-                    onChange={(e) => setAmountStr(e.target.value.replace(/\D/g, ''))}
-                    placeholder="0"
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  {isWarikan ? '支払った人' : '立て替えた人'}
-                </label>
-                <div className="payer-toggle">
-                  {household.memberOrder.filter(Boolean).map((uid) => (
-                    <button
-                      key={uid}
-                      className={`payer-btn${paidBy === uid ? ' active' : ''}`}
-                      onClick={() => setPaidBy(uid)}
-                    >
-                      {household.memberNames[uid] ?? uid.slice(0, 6)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {isWarikan && (
-                <div className="form-group">
-                  <label className="form-label">負担割合</label>
-                  <div className="ratio-slider-container">
-                    <div className="ratio-labels">
-                      <span>{name1} {splitA}%</span>
-                      <span>{name2} {splitB}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={splitA}
-                      onChange={(e) => handleSlider(parseInt(e.target.value, 10))}
-                      className="ratio-slider"
-                    />
-                    <div className="ratio-presets">
-                      {[
-                        [50, 50], [60, 40], [40, 60], [70, 30], [100, 0],
-                      ].map(([a, b]) => (
-                        <button
-                          key={`${a}:${b}`}
-                          className={`ratio-preset-btn${splitA === a ? ' active' : ''}`}
-                          onClick={() => { setSplitA(a); setSplitB(b); }}
-                        >
-                          {a}:{b}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">メモ</label>
-                <input
-                  className="form-input"
-                  placeholder="何を立て替えた？"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>
-                  キャンセル
-                </button>
-                <motion.button
-                  className="btn btn-primary"
-                  style={{ flex: 2 }}
-                  onClick={handleAdd}
-                  disabled={amount === 0 || saving}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  {saving ? '登録中…' : `${formatCurrency(amount)} を追加`}
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── サマリー（差額ファースト） ── */}
       {expenses.length > 0 && (
@@ -716,12 +700,30 @@ function MultiEntryView({
             }}>タップして編集</div>
           )}
           <div className="multi-entry-list">
-            {expenses.map((exp) => (
+            <AnimatePresence initial={false}>
+            {expenses.map((exp) => {
+              const isNew = exp.id === newlyAddedId;
+              const dateStr = exp.createdAt?.toDate
+                ? exp.createdAt.toDate().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
+                : null;
+              return (
               <motion.div
                 key={exp.id}
-                className={`multi-entry-row ${isLocked ? 'locked' : ''}`}
+                ref={(node) => registerExpenseRow(exp.id, node)}
+                className={`multi-entry-row ${isLocked ? 'locked' : ''}${isNew ? ' newly-added' : ''}`}
                 onClick={() => openEdit(exp)}
                 whileTap={isLocked ? undefined : { scale: 0.97 }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={isNew
+                  ? {
+                    opacity: 1,
+                    y: 0,
+                    scale: [1, 1.015, 1],
+                    backgroundColor: ['rgba(46,160,67,0.28)', 'rgba(46,160,67,0.06)', 'rgba(46,160,67,0)'],
+                  }
+                  : { opacity: 1, y: 0, backgroundColor: 'rgba(46,160,67,0)' }
+                }
+                transition={{ duration: 0.45 }}
                 layout
               >
                 <div className="multi-entry-info">
@@ -729,23 +731,17 @@ function MultiEntryView({
                   <span className="multi-entry-meta">
                     {household.memberNames[exp.paidBy] ?? '?'} 立替
                     {exp.note && ` · ${exp.note}`}
+                    {dateStr && <span className="multi-entry-date">{dateStr}</span>}
+                    {isNew && <span className="multi-entry-badge">追加済み</span>}
                   </span>
                 </div>
                 {!isLocked && <span style={{ fontSize: 14, opacity: 0.3 }}>›</span>}
               </motion.div>
-            ))}
+              );
+            })}
+            </AnimatePresence>
           </div>
         </div>
-      )}
-
-      {!isLocked && !showForm && (
-        <motion.button
-          className="btn btn-primary"
-          onClick={() => setShowForm(true)}
-          whileTap={{ scale: 0.97 }}
-        >
-          ＋ {cat.name}を登録
-        </motion.button>
       )}
 
       {/* ── 編集ボトムシート ── */}
@@ -767,7 +763,9 @@ function MultiEntryView({
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
               <div className="bottom-sheet-handle" />
-              <h3 style={{ textAlign: 'center', marginBottom: 16, fontSize: 16 }}>立替を編集</h3>
+              <h3 style={{ textAlign: 'center', marginBottom: 16, fontSize: 16 }}>
+                {isWarikan ? '割り勘を編集' : '立替を編集'}
+              </h3>
 
               <div className="form-group">
                 <label className="form-label">金額</label>
@@ -784,7 +782,7 @@ function MultiEntryView({
               </div>
 
               <div className="form-group">
-                <label className="form-label">立て替えた人</label>
+                <label className="form-label">{isWarikan ? '支払った人' : '立て替えた人'}</label>
                 <div className="payer-toggle">
                   {household.memberOrder.filter(Boolean).map((uid) => (
                     <button
@@ -810,20 +808,19 @@ function MultiEntryView({
               <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
                 <button
                   className="btn btn-danger"
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minHeight: 48 }}
                   onClick={handleEditDelete}
-                  disabled={saving}
                 >
                   🗑 削除
                 </button>
                 <motion.button
                   className="btn btn-primary"
-                  style={{ flex: 2 }}
+                  style={{ flex: 1, minHeight: 48 }}
                   onClick={handleEditSave}
-                  disabled={saving || (parseInt(editAmountStr, 10) || 0) === 0}
+                  disabled={(parseInt(editAmountStr, 10) || 0) === 0}
                   whileTap={{ scale: 0.97 }}
                 >
-                  {saving ? '保存中…' : '保存'}
+                  保存
                 </motion.button>
               </div>
 
@@ -834,6 +831,165 @@ function MultiEntryView({
               >
                 キャンセル
               </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── FAB：立替登録ボタン（常に画面下に固定） ── */}
+      {!isLocked && (
+        <motion.button
+          className="tatekae-fab"
+          onClick={openCreateSheet}
+          whileTap={{ scale: 0.94 }}
+          aria-label={`${cat.name}を登録`}
+        >
+          ＋
+        </motion.button>
+      )}
+
+      {/* ── 追加ボトムシート ── */}
+      <AnimatePresence>
+        {showForm && (
+          <>
+            <motion.div
+              className="bottom-sheet-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowForm(false)}
+            />
+            <motion.div
+              className="bottom-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onAnimationComplete={focusAmountInput}
+            >
+              <div className="bottom-sheet-handle" />
+              <h3 style={{ textAlign: 'center', marginBottom: 16, fontSize: 16 }}>
+                {isWarikan ? '割り勘を追加' : '立替を追加'}
+              </h3>
+
+              <div className="multi-entry-sheet-hero">
+                <div className="multi-entry-sheet-kicker">{cat.emoji} {cat.name}</div>
+                <div className="multi-entry-sheet-amount">
+                  {amount > 0 ? formatCurrency(amount) : '金額を入力'}
+                </div>
+                <div className="multi-entry-sheet-detail">
+                  {isWarikan ? `${selectedPayerName} が支払い` : `${selectedPayerName} が立て替え`}
+                  {note ? ` · ${note}` : ' · 短いメモだと後から見返しやすいです'}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">金額</label>
+                <div className="entry-amount-display small">
+                  <span className="currency">¥</span>
+                  <input
+                    ref={amountInputRef}
+                    type="text"
+                    inputMode="numeric"
+                    enterKeyHint="done"
+                    className="entry-amount-input"
+                    value={amountStr}
+                    onChange={(e) => setAmountStr(e.target.value.replace(/\D/g, ''))}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="multi-entry-section-hint">シートを開いたらそのまま数字入力できます</div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  {isWarikan ? '支払った人' : '立て替えた人'}
+                </label>
+                <div className="payer-toggle">
+                  {household.memberOrder.filter(Boolean).map((uid) => (
+                    <button
+                      key={uid}
+                      className={`payer-btn${paidBy === uid ? ' active' : ''}`}
+                      onClick={() => setPaidBy(uid)}
+                    >
+                      {household.memberNames[uid] ?? uid.slice(0, 6)}
+                    </button>
+                  ))}
+                </div>
+                <div className="multi-entry-section-hint">現在は {selectedPayerName} を選択中</div>
+              </div>
+
+              {isWarikan && (
+                <div className="form-group">
+                  <label className="form-label">負担割合</label>
+                  <div className="ratio-slider-container">
+                    <div className="ratio-labels">
+                      <span>{name1} {splitA}%</span>
+                      <span>{name2} {splitB}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={splitA}
+                      onChange={(e) => handleSlider(parseInt(e.target.value, 10))}
+                      className="ratio-slider"
+                    />
+                    <div className="ratio-presets">
+                      {[
+                        [50, 50], [60, 40], [40, 60], [70, 30], [100, 0],
+                      ].map(([a, b]) => (
+                        <button
+                          key={`${a}:${b}`}
+                          className={`ratio-preset-btn${splitA === a ? ' active' : ''}`}
+                          onClick={() => { setSplitA(a); setSplitB(b); }}
+                        >
+                          {a}:{b}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label">メモ</label>
+                <input
+                  className="form-input"
+                  placeholder={isWarikan ? '例: 夜ごはん、チケット、プレゼント' : '例: スーパー、ランチ、交通費'}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <div className="note-chip-list">
+                  {noteSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className={`note-chip${note === suggestion ? ' active' : ''}`}
+                      onClick={() => setNote((current) => (current === suggestion ? '' : suggestion))}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+                <div className="multi-entry-section-hint">メモは任意ですが、1語あると一覧で探しやすくなります</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>
+                  キャンセル
+                </button>
+                <motion.button
+                  className="btn btn-primary"
+                  style={{ flex: 2 }}
+                  onClick={handleAdd}
+                  disabled={amount === 0}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {formatCurrency(amount)} を追加
+                </motion.button>
+              </div>
             </motion.div>
           </>
         )}
