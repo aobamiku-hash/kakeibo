@@ -203,6 +203,7 @@ export default function HomePage({ household }: Props) {
                   <div className="digest-cat-grid">
                     {household.categories.map((cat) => {
                       const catTotal = summary.byCategory.find((bc) => bc.category.id === cat.id)?.total ?? 0;
+                      const isSkippedWater = cat.id === 'cat_2' && catStatus.find((status) => status.id === cat.id)?.entered && catTotal === 0;
                       return (
                         <div
                           key={cat.id}
@@ -212,7 +213,7 @@ export default function HomePage({ household }: Props) {
                           <span className="digest-cat-tile-emoji">{cat.emoji}</span>
                           <span className="digest-cat-tile-name">{cat.name}</span>
                           <span className="digest-cat-tile-amount">
-                            {catTotal > 0 ? formatCurrency(catTotal) : '—'}
+                            {catTotal > 0 ? formatCurrency(catTotal) : isSkippedWater ? 'スキップ' : '—'}
                           </span>
                         </div>
                       );
