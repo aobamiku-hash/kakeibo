@@ -6,6 +6,7 @@ import { useExpenses } from '../hooks/useExpenses';
 import {
   calculateMonthSummary,
   currentYearMonth,
+  filterLegacyCreditAggregates,
   shiftMonth,
   formatYearMonth,
   formatCurrency,
@@ -36,7 +37,15 @@ export default function KakeiboPage({ household }: Props) {
   const initialYm = searchParams.get('ym') ?? currentYearMonth();
   const [yearMonth, setYearMonth] = useState(initialYm);
   const [slideDir, setSlideDir] = useState(0);
-  const { expenses, settlement, loading, confirmSettlement, unconfirmSettlement, unpaySettlement } = useExpenses(household, yearMonth);
+  const {
+    expenses: rawExpenses,
+    settlement,
+    loading,
+    confirmSettlement,
+    unconfirmSettlement,
+    unpaySettlement,
+  } = useExpenses(household, yearMonth);
+  const expenses = useMemo(() => filterLegacyCreditAggregates(rawExpenses), [rawExpenses]);
 
   // ローディングが5秒以上続いた場合のタイムアウト検知
   const [loadTimeout, setLoadTimeout] = useState(false);

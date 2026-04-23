@@ -12,10 +12,27 @@ export interface MonthSummary {
   settlement: number;
 }
 
+export function filterLegacyCreditAggregates(expenses: Expense[]): Expense[] {
+  const detailMonths = new Set(
+    expenses
+      .filter((expense) => expense.categoryId === 'cat_4' && !!expense.subcategory)
+      .map((expense) => expense.yearMonth),
+  );
+
+  if (detailMonths.size === 0) {
+    return expenses;
+  }
+
+  return expenses.filter(
+    (expense) => !(expense.categoryId === 'cat_4' && !expense.subcategory && detailMonths.has(expense.yearMonth)),
+  );
+}
+
 export function calculateMonthSummary(
   expenses: Expense[],
   household: Household,
 ): MonthSummary {
+  const normalizedExpenses = filterLegacyCreditAggregates(expenses);
   const [member1] = household.memberOrder;
 
   let totalAmount = 0;
@@ -25,7 +42,7 @@ export function calculateMonthSummary(
   let member2Paid = 0;
   const catTotals = new Map<string, number>();
 
-  for (const exp of expenses) {
+  for (const exp of normalizedExpenses) {
     totalAmount += exp.amount;
 
     member1Should += exp.amount * (exp.split[0] / 100);
@@ -48,7 +65,7 @@ export function calculateMonthSummary(
   const roundedM1Should = Math.round(member1Should);
 
   return {
-    yearMonth: expenses[0]?.yearMonth ?? '',
+    yearMonth: normalizedExpenses[0]?.yearMonth ?? expenses[0]?.yearMonth ?? '',
     totalAmount: roundedTotal,
     byCategory,
     member1Should: roundedM1Should,

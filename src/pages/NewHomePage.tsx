@@ -10,6 +10,7 @@ import { db } from '../firebase';
 import {
   calculateMonthSummary,
   currentYearMonth,
+  filterLegacyCreditAggregates,
   formatYearMonth,
   formatCurrency,
   todayDateString,
@@ -24,7 +25,8 @@ export default function HomePage({ household }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const yearMonth = currentYearMonth();
-  const { expenses, settlement, loading: expLoading } = useExpenses(household, yearMonth);
+  const { expenses: rawExpenses, settlement, loading: expLoading } = useExpenses(household, yearMonth);
+  const expenses = useMemo(() => filterLegacyCreditAggregates(rawExpenses), [rawExpenses]);
   const { messages, loading: msgLoading, addMessage, deleteMessage } = useMessages(household);
   const { trips, loading: tripLoading, addTrip, deleteTrip } = useTrips(household);
 

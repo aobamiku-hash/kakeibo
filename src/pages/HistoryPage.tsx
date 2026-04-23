@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
-import { formatYearMonth, formatCurrency } from '../utils/calculation';
+import { formatYearMonth, formatCurrency, filterLegacyCreditAggregates } from '../utils/calculation';
 import type { Household, Expense, Settlement } from '../types';
 import { CREDIT_SUBCATEGORIES } from '../types';
 import {
@@ -108,9 +108,11 @@ export default function HistoryPage({ household }: Props) {
     const unsubExp = onSnapshot(
       query(collection(db, 'households', household.id, 'expenses'), orderBy('yearMonth', 'desc')),
       (snap) => {
+        const expenses = filterLegacyCreditAggregates(
+          snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Expense),
+        );
         const monthMap = new Map<string, { count: number; total: number; byCat: Map<string, number>; byCreditSubcat: Map<string, number> }>();
-        for (const d of snap.docs) {
-          const data = d.data() as Expense;
+        for (const data of expenses) {
           const ym = data.yearMonth;
           const cur = monthMap.get(ym) ?? { count: 0, total: 0, byCat: new Map(), byCreditSubcat: new Map() };
           cur.count++;
