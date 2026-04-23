@@ -11,7 +11,6 @@ import KakeiboPage from './pages/KakeiboPage';
 import EntryPage from './pages/EntryPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
-import ImportPage from './pages/ImportPage';
 import { useState, useEffect } from 'react';
 
 const pageVariants = {
@@ -59,6 +58,22 @@ function LoadingScreen({ message }: { message?: string }) {
   );
 }
 
+function ImportDisabledPage() {
+  return (
+    <div className="page" style={{ paddingBottom: 120 }}>
+      <h1 className="page-title">データインポート</h1>
+      <div className="card" style={{ display: 'grid', gap: 12 }}>
+        <p style={{ margin: 0, lineHeight: 1.7 }}>
+          ブラウザ経由の一括インポートは、安全性の見直しのため停止しています。
+        </p>
+        <p style={{ margin: 0, color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
+          既存データの移行が必要な場合は、ローカルの移行スクリプトを使って実行してください。
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { household, loading: hhLoading, setupError } = useHousehold();
@@ -76,6 +91,9 @@ function AppRoutes() {
     return (
       <div className="loading-screen" style={{ flexDirection: 'column', gap: 16, textAlign: 'center' }}>
         <p style={{ color: 'var(--color-danger)', fontSize: 14 }}>{setupError}</p>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, margin: 0 }}>
+          このアプリは既存の2名専用です。世帯未登録のアカウントは利用できません。
+        </p>
         <button className="btn btn-primary" onClick={() => window.location.reload()}>
           再読み込み
         </button>
@@ -107,7 +125,7 @@ function AppRoutes() {
             <Route path="/entry/:catId" element={<EntryPage household={household} />} />
             <Route path="/history" element={<HistoryPage household={household} />} />
             <Route path="/settings" element={<SettingsPage household={household} />} />
-            <Route path="/import" element={<ImportPage household={household} />} />
+            <Route path="/import" element={<ImportDisabledPage />} />
           </Routes>
           </ErrorBoundary>
         </motion.div>

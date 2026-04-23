@@ -108,7 +108,7 @@ export default function HomePage({ household }: Props) {
     const entered = new Set(expenses.map((e) => e.categoryId));
     return household.categories.map((cat) => ({
       ...cat,
-      entered: entered.has(cat.id) || cat.id === 'cat_0' || cat.id === 'cat_2' || cat.id === 'cat_3',
+      entered: entered.has(cat.id),
     }));
   }, [expenses, household]);
 

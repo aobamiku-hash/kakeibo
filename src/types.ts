@@ -28,6 +28,7 @@ export interface Expense {
   note: string;
   createdAt: Timestamp;
   createdBy: string;       // uid
+  isSkipped?: boolean;
   subcategory?: string;        // クレカ内訳: "grocery" | "dining" | ...
   subcategoryName?: string;    // クレカ内訳名: "食費" | "外食" | ...
 }

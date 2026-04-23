@@ -15,6 +15,7 @@ yearMonth はファイル名の請求月（例: 202409確定分.csv → 2024-09�
 """
 
 import csv
+import datetime as dt
 import json
 import re
 from pathlib import Path
@@ -199,6 +200,13 @@ def classify(store_name: str) -> str:
 def parse_date(raw) -> str | None:
     if raw is None:
         return None
+
+    if isinstance(raw, dt.datetime):
+        return raw.strftime("%Y/%m/%d")
+
+    if isinstance(raw, dt.date):
+        return raw.strftime("%Y/%m/%d")
+
     value = str(raw).strip()
     match = re.match(r"(\d{4})年(\d{1,2})月(\d{1,2})日", value)
     if match:
@@ -209,6 +217,12 @@ def parse_date(raw) -> str | None:
     if match:
         year, month, day = match.groups()
         return f"{year}/{int(month):02d}/{int(day):02d}"
+
+    match = re.match(r"(\d{4})-(\d{1,2})-(\d{1,2})", value)
+    if match:
+        year, month, day = match.groups()
+        return f"{year}/{int(month):02d}/{int(day):02d}"
+
     return None
 
 
@@ -276,7 +290,7 @@ def read_csv(path: Path) -> list[dict]:
         print(f"  [WARN] 列が特定できません: {path.name} header={header}")
         return []
 
-    for row in data_rows:
+    for row_index, row in enumerate(data_rows, start=header_row_index + 2):
         if not row or all(cell == "" for cell in row):
             continue
         while len(row) <= max(idx_date, idx_name, idx_amount):
@@ -301,6 +315,7 @@ def read_csv(path: Path) -> list[dict]:
                 "amount": amount,
                 "paidBy": paid_by,
                 "sourceFile": path.name,
+                "sourceRow": row_index,
             }
         )
 
@@ -340,7 +355,7 @@ def read_xlsx(path: Path) -> list[dict]:
         print(f"  [WARN] 列が特定できません: {path.name} header={header}")
         return []
 
-    for row in data_rows:
+    for row_index, row in enumerate(data_rows, start=header_index + 2):
         if row is None or all(cell is None for cell in row):
             continue
         row = list(row)
@@ -370,6 +385,7 @@ def read_xlsx(path: Path) -> list[dict]:
                 "amount": amount,
                 "paidBy": paid_by,
                 "sourceFile": path.name,
+                "sourceRow": row_index,
             }
         )
 
@@ -388,18 +404,35 @@ def main() -> None:
         return
 
     for path in files:
-        if path.suffix.lower() == ".csv":
-            print(f"CSV: {path.name}")
-            items = read_csv(path)
-        elif path.suffix.lower() in (".xlsx", ".xls"):
-            print(f"XLS: {path.name}")
-            items = read_xlsx(path)
-        else:
+        if path.name.startswith("~$"):
+            print(f"  [SKIP] Excel 一時ファイルを無視: {path.name}")
+            continue
+
+        try:
+            if path.suffix.lower() == ".csv":
+                print(f"CSV: {path.name}")
+                items = read_csv(path)
+            elif path.suffix.lower() == ".xlsx":
+                print(f"XLSX: {path.name}")
+                items = read_xlsx(path)
+            elif path.suffix.lower() == ".xls":
+                print(f"  [WARN] .xls は未対応のためスキップ: {path.name}")
+                print("         .xlsx に変換して再実行してください。")
+                continue
+            else:
+                continue
+        except Exception as exc:
+            print(f"  [WARN] 読み込み失敗: {path.name} ({exc})")
             continue
 
         billing_ym = billing_month_from_filename(path.name)
+        if billing_ym is None:
+            print(f"[ERROR] 請求月をファイル名から特定できません: {path.name}")
+            print("        先頭を YYYYMM 形式にしてください。例: 202409確定分.xlsx")
+            raise SystemExit(1)
+
         for item in items:
-            item["yearMonth"] = billing_ym or "unknown"
+            item["yearMonth"] = billing_ym
             category_key = classify(item["storeName"])
             category_info = CATEGORY_MAP[category_key]
             item["category"] = category_key
@@ -408,13 +441,16 @@ def main() -> None:
         print(f"  → {len(items)} 件 (billing: {billing_ym})")
         all_items.extend(items)
 
-    seen = set()
-    unique_items = []
-    for item in all_items:
-        key = (item["date"], item["storeName"], item["amount"])
-        if key not in seen:
-            seen.add(key)
-            unique_items.append(item)
+    unique_items = list(all_items)
+
+    duplicate_groups: dict[tuple[str, str, int, str], list[dict]] = {}
+    for item in unique_items:
+        key = (item["date"], item["storeName"], item["amount"], item["paidBy"])
+        duplicate_groups.setdefault(key, []).append(item)
+
+    suspected_duplicates = [
+        items for items in duplicate_groups.values() if len(items) > 1
+    ]
 
     by_ym: dict[str, int] = {}
     for item in unique_items:
@@ -437,6 +473,7 @@ def main() -> None:
         "byYearMonth": {key: value for key, value in sorted(by_ym.items())},
         "byCategory": by_cat,
         "categoryMap": CATEGORY_MAP,
+        "suspectedDuplicateGroups": len(suspected_duplicates),
         "items": unique_items,
     }
 
@@ -464,6 +501,19 @@ def main() -> None:
         info = by_cat.get(category, {"count": 0, "amount": 0})
         percent = info["amount"] / result["totalAmount"] * 100 if result["totalAmount"] > 0 else 0
         print(f"  {labels[category]:10s}  {info['count']:>4}件  ¥{info['amount']:>10,}  ({percent:.1f}%)")
+
+    if suspected_duplicates:
+        print("\n[WARN] 同一日付・店舗・金額・支払者の明細が複数あります。自動削除せず、そのまま出力しました。")
+        for items in suspected_duplicates[:10]:
+            sample = items[0]
+            sources = ", ".join(
+                f"{entry['sourceFile']}:{entry.get('sourceRow', '?')}" for entry in items[:3]
+            )
+            print(
+                "  "
+                f"{sample['date']}  ¥{sample['amount']:>6}  {sample['storeName']}"
+                f"  paidBy={sample['paidBy']}  {len(items)}件  source={sources}"
+            )
 
     others = [item for item in unique_items if item["category"] == "other"]
     if others:

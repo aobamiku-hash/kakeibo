@@ -29,6 +29,10 @@ export default function EntryPage({ household }: Props) {
     () => expenses.filter((e) => e.categoryId === catId),
     [expenses, catId],
   );
+  const creditDetailExpenses = useMemo(
+    () => catExpenses.filter((e) => e.subcategory),
+    [catExpenses],
+  );
 
   if (!cat) {
     return (
@@ -44,7 +48,8 @@ export default function EntryPage({ household }: Props) {
   const isWarikan = cat.id === 'cat_6'; // 割り勘
   const isBimonthly = cat.id === 'cat_2'; // 水道は隔月
   const isCreditCard = cat.id === 'cat_4';
-  const hasCreditDetails = isCreditCard && catExpenses.some(e => e.subcategory);
+  const hasCreditDetails = isCreditCard && creditDetailExpenses.length > 0;
+  const hasLegacyCreditAggregate = hasCreditDetails && catExpenses.some((e) => !e.subcategory);
 
   return (
     <motion.div
@@ -67,7 +72,8 @@ export default function EntryPage({ household }: Props) {
       {hasCreditDetails ? (
         <CreditCardView
           household={household}
-          expenses={catExpenses}
+          expenses={creditDetailExpenses}
+          hasLegacyAggregate={hasLegacyCreditAggregate}
           m1={m1}
           m2={m2}
         />
@@ -112,10 +118,11 @@ export default function EntryPage({ household }: Props) {
    クレカ内訳ビュー（cat_4 + subcategory があるとき）
    ═══════════════════════════════════════ */
 function CreditCardView({
-  household, expenses, m1, m2,
+  household, expenses, hasLegacyAggregate, m1, m2,
 }: {
   household: Household;
   expenses: Expense[];
+  hasLegacyAggregate: boolean;
   m1: string;
   m2: string;
 }) {
@@ -143,6 +150,12 @@ function CreditCardView({
 
   return (
     <>
+      {hasLegacyAggregate && (
+        <div className="card" style={{ marginBottom: 12, padding: '12px 16px', fontSize: 12, opacity: 0.72 }}>
+          旧形式のクレカ集計行は二重計上を防ぐため、この内訳表示から除外しています。
+        </div>
+      )}
+
       {/* ── 合計サマリー ── */}
       <div className="card" style={{ marginBottom: 16, padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -272,7 +285,7 @@ function SingleEntryView({
   const FIXED_AMOUNTS: Record<string, number> = { cat_0: 46430, cat_3: 5130 };
   const FIXED_PAYER: Record<string, string> = { cat_0: m1, cat_3: m2 };
   const defaultAmt = isFixed ? String(FIXED_AMOUNTS[cat.id] ?? 0) : '';
-  const [amountStr, setAmountStr] = useState(existing ? String(existing.amount) : defaultAmt);
+  const [amountStr, setAmountStr] = useState(existing && !existing.isSkipped ? String(existing.amount) : defaultAmt);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -292,9 +305,14 @@ function SingleEntryView({
         note: '',
       };
       if (existing) {
-        await updateExpense(existing.id, { amount });
+        await updateExpense(existing.id, {
+          amount,
+          note: '',
+          isSkipped: false,
+          split: cat.defaultSplit as [number, number],
+        });
       } else {
-        await addExpense(data);
+        await addExpense({ ...data, isSkipped: false });
       }
       setDone(true);
       setTimeout(() => navigate('/'), 600);
@@ -387,6 +405,7 @@ function SingleEntryView({
                 paidBy: m1,
                 split: cat.defaultSplit as [number, number],
                 note: '今月はスキップ',
+                isSkipped: true,
               });
               setDone(true);
               setTimeout(() => navigate('/'), 600);
@@ -402,6 +421,12 @@ function SingleEntryView({
         >
           今月はスキップ
         </motion.button>
+      )}
+
+      {existing?.isSkipped && (
+        <div className="card" style={{ marginTop: 12, padding: 14, fontSize: 13, opacity: 0.78 }}>
+          この月は「請求なし」として記録済みです。金額を入力して保存すると通常の水道代に戻せます。
+        </div>
       )}
     </>
   );
@@ -616,7 +641,7 @@ function MultiEntryView({
 
   const handleEditDelete = () => {
     if (!editingExp) return;
-    if (!window.confirm('この立替を削除しますか？この操作は取り消せません。')) return;
+    if (!window.confirm(`この${isWarikan ? '割り勘' : '立替'}を削除しますか？この操作は取り消せません。`)) return;
 
     const targetId = editingExp.id;
 
@@ -729,7 +754,7 @@ function MultiEntryView({
                 <div className="multi-entry-info">
                   <span className="multi-entry-amount">{formatCurrency(exp.amount)}</span>
                   <span className="multi-entry-meta">
-                    {household.memberNames[exp.paidBy] ?? '?'} 立替
+                    {household.memberNames[exp.paidBy] ?? '?'} {isWarikan ? '支払い' : '立替'}
                     {exp.note && ` · ${exp.note}`}
                     {dateStr && <span className="multi-entry-date">{dateStr}</span>}
                     {isNew && <span className="multi-entry-badge">追加済み</span>}

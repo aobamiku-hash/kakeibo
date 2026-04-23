@@ -6,10 +6,18 @@ function getCliOption(optionName) {
   for (let index = 0; index < process.argv.length; index += 1) {
     const arg = process.argv[index];
     if (arg === optionName) {
-      return process.argv[index + 1] || null;
+      const nextArg = process.argv[index + 1];
+      if (!nextArg || nextArg.startsWith('--')) {
+        throw new Error(`${optionName} の値が指定されていません。`);
+      }
+      return nextArg;
     }
     if (arg.startsWith(prefix)) {
-      return arg.slice(prefix.length);
+      const value = arg.slice(prefix.length);
+      if (!value) {
+        throw new Error(`${optionName} の値が指定されていません。`);
+      }
+      return value;
     }
   }
   return null;
@@ -25,11 +33,22 @@ function buildCandidatePaths() {
 
   candidates.push(path.join(__dirname, 'credit_card_items.json'));
 
-  return [...new Set(candidates)];
+  return {
+    cliPath: cliPath ? path.resolve(cliPath) : null,
+    candidates: [...new Set(candidates)],
+  };
 }
 
 function resolveCreditCardItemsPath() {
-  const candidates = buildCandidatePaths();
+  const { cliPath, candidates } = buildCandidatePaths();
+  if (cliPath && !fs.existsSync(cliPath)) {
+    throw new Error(`--items-path で指定した明細 JSON が見つかりません: ${cliPath}`);
+  }
+
+  if (cliPath) {
+    return { itemsPath: cliPath, candidates };
+  }
+
   const itemsPath = candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
   return { itemsPath, candidates };
 }

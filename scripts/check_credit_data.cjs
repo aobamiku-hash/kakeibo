@@ -27,6 +27,15 @@ async function getToken() {
 }
 
 async function main() {
+  let itemsPath;
+  try {
+    ({ itemsPath } = resolveCreditCardItemsPath());
+  } catch (e) {
+    console.error(e.message);
+    console.error(getCreditCardItemsPathHelp());
+    process.exit(1);
+  }
+
   const token = await getToken();
   const BASE = 'https://firestore.googleapis.com/v1/projects/kakeibo-f4a7a/databases/(default)/documents';
 
@@ -76,7 +85,6 @@ async function main() {
 
   // importData.json と比較
   console.log(`\n--- credit_card_items.json との比較 ---`);
-  const { itemsPath } = resolveCreditCardItemsPath();
   if (fs.existsSync(itemsPath)) {
     console.log(`  参照ファイル: ${itemsPath}`);
     const { byYearMonth } = JSON.parse(fs.readFileSync(itemsPath, 'utf-8'));
@@ -95,4 +103,7 @@ async function main() {
   }
 }
 
-main().catch(e => console.error(e));
+main().catch((e) => {
+  console.error(e.message || e);
+  process.exit(1);
+});

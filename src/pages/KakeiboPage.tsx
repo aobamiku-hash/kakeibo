@@ -74,10 +74,7 @@ export default function KakeiboPage({ household }: Props) {
     return map;
   }, [expenses]);
 
-  const allCatsEntered = household.categories.every((cat) => {
-    if (cat.id === 'cat_0' || cat.id === 'cat_2' || cat.id === 'cat_3') return true;
-    return catStatus.has(cat.id);
-  });
+  const allCatsEntered = household.categories.every((cat) => catStatus.has(cat.id));
 
   const isConfirmed = settlement?.confirmed ?? false;
   const isPaid = !!settlement?.paidAt;
@@ -204,9 +201,9 @@ export default function KakeiboPage({ household }: Props) {
               const status = catStatus.get(cat.id);
               const isFixed = FIXED_CATS.includes(cat.id);
               const isDaily = DAILY_CATS.includes(cat.id);
-              const entered = !!status || isFixed;
-              const isSkipped = cat.id === 'cat_2' && status?.total === 0;
-              const canTap = isDaily || !isFixed;
+              const entered = !!status;
+              const isSkipped = cat.id === 'cat_2' && !!status && status.total === 0;
+              const canTap = isDaily || !isFixed || !status;
 
               return (
                 <motion.button
@@ -256,7 +253,7 @@ export default function KakeiboPage({ household }: Props) {
                     </>
                   ) : (
                     <div className="cat-tile-amount empty-text">
-                      {isDaily ? 'タップして追加' : '未入力'}
+                      {isDaily || isFixed ? 'タップして登録' : '未入力'}
                     </div>
                   )}
                 </motion.button>

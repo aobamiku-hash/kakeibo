@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useHousehold } from '../hooks/useHousehold';
 import type { Household, Category } from '../types';
 
+const BUILTIN_CATEGORY_IDS = new Set(['cat_0', 'cat_1', 'cat_2', 'cat_3', 'cat_4', 'cat_5', 'cat_6']);
+
 interface Props {
   household: Household;
 }
@@ -18,6 +20,7 @@ export default function SettingsPage({ household }: Props) {
   const [m1, m2] = household.memberOrder;
   const name1 = household.memberNames[m1];
   const name2 = household.memberNames[m2];
+  const inviteCode = household.inviteCode || household.id;
 
   const startEditMember = (uid: string, currentName: string) => {
     setEditingMember(uid);
@@ -31,8 +34,21 @@ export default function SettingsPage({ household }: Props) {
   };
 
   const handleUpdateCategory = async (updated: Category) => {
+    const total = updated.defaultSplit[0] + updated.defaultSplit[1];
+    if (total !== 100) {
+      alert('割り勘の比率は合計 100 にしてください。');
+      return;
+    }
+
+    const original = household.categories.find((c) => c.id === updated.id);
+    if (!original) return;
+
+    const normalized = BUILTIN_CATEGORY_IDS.has(updated.id)
+      ? { ...updated, name: original.name, emoji: original.emoji }
+      : updated;
+
     const newCats = household.categories.map((c) =>
-      c.id === updated.id ? updated : c,
+      c.id === updated.id ? normalized : c,
     );
     await updateCategories(newCats);
     setEditingCat(null);
@@ -70,10 +86,23 @@ export default function SettingsPage({ household }: Props) {
           <span className="value">{name2 ?? '未参加'} {m2 ? '✏️' : ''}</span>
         </div>
         <div className="settings-item">
-          <span className="label">招待コード</span>
-          <span className="value" style={{ fontFamily: 'monospace', letterSpacing: 2 }}>
-            {household.inviteCode}
-          </span>
+          <span className="label">世帯ID</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="value" style={{ fontFamily: 'monospace', letterSpacing: 1.2 }}>
+              {inviteCode}
+            </span>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px', fontSize: 12 }}
+              onClick={() => {
+                navigator.clipboard.writeText(inviteCode).catch((err) => {
+                  console.error('招待コードのコピーに失敗:', err);
+                });
+              }}
+            >
+              コピー
+            </button>
+          </div>
         </div>
       </div>
 
@@ -159,6 +188,10 @@ export default function SettingsPage({ household }: Props) {
           onSave={handleUpdateCategory}
           onCancel={() => setEditingCat(null)}
           onDelete={async () => {
+            if (BUILTIN_CATEGORY_IDS.has(editingCat.id)) {
+              alert('基本カテゴリは削除できません。');
+              return;
+            }
             const newCats = household.categories.filter(
               (c) => c.id !== editingCat.id,
             );
@@ -196,10 +229,12 @@ function CategoryEditor({
   onCancel: () => void;
   onDelete: () => void;
 }) {
+  const isBuiltIn = BUILTIN_CATEGORY_IDS.has(category.id);
   const [name, setName] = useState(category.name);
   const [emoji, setEmoji] = useState(category.emoji);
   const [a, setA] = useState(String(category.defaultSplit[0]));
   const [b, setB] = useState(String(category.defaultSplit[1]));
+  const ratioTotal = (parseInt(a, 10) || 0) + (parseInt(b, 10) || 0);
 
   return (
     <motion.div
@@ -236,6 +271,7 @@ function CategoryEditor({
             value={emoji}
             onChange={(e) => setEmoji(e.target.value)}
             style={{ width: 80, textAlign: 'center', fontSize: 24 }}
+            disabled={isBuiltIn}
           />
         </div>
 
@@ -245,8 +281,15 @@ function CategoryEditor({
             className="form-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            disabled={isBuiltIn}
           />
         </div>
+
+        {isBuiltIn && (
+          <div className="card" style={{ marginBottom: 12, padding: 12, fontSize: 12, opacity: 0.74 }}>
+            基本カテゴリは名前と絵文字を固定しています。割合だけ変更できます。
+          </div>
+        )}
 
         <div className="form-group">
           <label className="form-label">デフォルト割り勘</label>
@@ -265,10 +308,14 @@ function CategoryEditor({
             />
             <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{name2}</span>
           </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: ratioTotal === 100 ? 'var(--color-text-secondary)' : '#FF3B30' }}>
+            合計: {ratioTotal}%
+          </div>
         </div>
 
         <button
           className="btn btn-primary"
+          disabled={ratioTotal !== 100 || !name.trim() || !emoji.trim()}
           onClick={() =>
             onSave({
               ...category,
@@ -280,9 +327,11 @@ function CategoryEditor({
         >
           保存
         </button>
-        <button className="btn btn-secondary" onClick={onDelete}>
-          削除
-        </button>
+        {!isBuiltIn && (
+          <button className="btn btn-secondary" onClick={onDelete}>
+            削除
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );

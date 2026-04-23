@@ -16,7 +16,6 @@ const {
   resolveCreditCardItemsPath,
 } = require('./credit_card_items_path.cjs');
 
-const { itemsPath: ITEMS_PATH } = resolveCreditCardItemsPath();
 const PROJECT_ID = 'kakeibo-f4a7a';
 const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const OLD_CATEGORY_ID = 'cat_4'; // 既存の集計行のカテゴリID
@@ -155,6 +154,15 @@ function toFsDoc(obj) {
 
 // ── メイン ──
 async function main() {
+  let itemsPath;
+  try {
+    ({ itemsPath } = resolveCreditCardItemsPath());
+  } catch (e) {
+    console.error(e.message);
+    console.error(getCreditCardItemsPathHelp());
+    process.exit(1);
+  }
+
   let token;
   try {
     token = await getAccessToken();
@@ -165,14 +173,14 @@ async function main() {
   }
 
   // 明細 JSON 読み込み
-  if (!fs.existsSync(ITEMS_PATH)) {
-    console.error(`ファイルが見つかりません: ${ITEMS_PATH}`);
+  if (!fs.existsSync(itemsPath)) {
+    console.error(`ファイルが見つかりません: ${itemsPath}`);
     console.error(getCreditCardItemsPathHelp());
     process.exit(1);
   }
-  console.log(`📄 明細JSON: ${ITEMS_PATH}`);
+  console.log(`📄 明細JSON: ${itemsPath}`);
   const { items, totalItems, totalAmount, byYearMonth } = JSON.parse(
-    fs.readFileSync(ITEMS_PATH, 'utf-8')
+    fs.readFileSync(itemsPath, 'utf-8')
   );
   console.log(`📂 読み込み: ${totalItems} 件 / ¥${totalAmount.toLocaleString()}`);
   console.log('月別件数:');
@@ -237,8 +245,10 @@ async function main() {
     for (const doc of (data.documents || [])) {
       const note = doc.fields?.note?.stringValue || '';
       const amt = doc.fields?.amount?.integerValue || doc.fields?.amount?.doubleValue || '';
+      const yearMonth = doc.fields?.yearMonth?.stringValue || '';
+      const paidBy = doc.fields?.paidBy?.stringValue || '';
       const m = note.match(/^(\d{4}\/\d{2}\/\d{2}) (.+)$/);
-      if (m) existingKeys.add(`${m[1]}|${m[2]}|${amt}`);
+      if (m) existingKeys.add(`${yearMonth}|${m[1]}|${m[2]}|${amt}|${paidBy}`);
     }
     pageToken = data.nextPageToken || null;
   } while (pageToken);
@@ -247,7 +257,8 @@ async function main() {
   // 書き込み対象をフィルタ
   let skipped = 0;
   const toWrite = items.filter(item => {
-    const key = `${item.date}|${item.storeName}|${item.amount}`;
+    const paidBy = PAIDBY_UID_MAP[item.paidBy] || item.paidBy;
+    const key = `${item.yearMonth}|${item.date}|${item.storeName}|${item.amount}|${paidBy}`;
     if (existingKeys.has(key)) { skipped++; return false; }
     return true;
   });

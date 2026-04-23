@@ -4,19 +4,24 @@ service cloud.firestore {
 
     // ── ユーザーと世帯の紐付け ──
     match /userHouseholds/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['householdId'])
+        && request.resource.data.householdId is string
+        && exists(/databases/$(database)/documents/households/$(request.resource.data.householdId))
+        && request.auth.uid in get(/databases/$(database)/documents/households/$(request.resource.data.householdId)).data.members;
     }
 
     // ── 世帯 ──
     match /households/{householdId} {
-      allow create: if request.auth != null;
-      // 読み取り: メンバーのみ OR 参加候補者が memberCount==1 の世帯を検索
+      allow create: if false;
+      // 読み取り: 現在のメンバーのみ
       allow read: if request.auth != null
-        && (request.auth.uid in resource.data.members
-            || resource.data.memberCount == 1);
+        && request.auth.uid in resource.data.members;
       allow update: if request.auth != null
-        && (request.auth.uid in resource.data.members
-            || resource.data.memberCount == 1);
+        && request.auth.uid in resource.data.members
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['categories', 'memberNames']);
 
       // ── 支出 ──
       match /expenses/{expenseId} {
@@ -27,7 +32,10 @@ service cloud.firestore {
         allow delete: if request.auth != null && isMember();
         allow create, update: if request.auth != null && isMember()
           && request.resource.data.amount is int
-          && request.resource.data.amount > 0
+          && (request.resource.data.amount > 0
+            || (request.resource.data.categoryId == 'cat_2'
+              && request.resource.data.amount == 0
+              && request.resource.data.isSkipped == true))
           && request.resource.data.yearMonth is string
           && request.resource.data.yearMonth.matches('^[0-9]{4}-[0-9]{2}$');
       }
